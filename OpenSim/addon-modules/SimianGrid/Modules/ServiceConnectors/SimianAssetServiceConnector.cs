@@ -133,8 +133,10 @@ namespace SimianGrid
                 {
                     using (Stream responseStream = response.GetResponseStream())
                     {
+                        string creatorID = response.Headers.GetOne("X-Asset-Creator-Id") ?? String.Empty;
+
                         // Create the asset object
-                        asset = new AssetBase(id, String.Empty, SLUtil.ContentTypeToSLAssetType(response.ContentType));
+                        asset = new AssetBase(id, String.Empty, SLUtil.ContentTypeToSLAssetType(response.ContentType), creatorID);
 
                         UUID assetID;
                         if (UUID.TryParse(id, out assetID))
@@ -310,7 +312,7 @@ namespace SimianGrid
             List<MultipartForm.Element> postParameters = new List<MultipartForm.Element>()
             {
                 new MultipartForm.Parameter("AssetID", asset.FullID.ToString()),
-                // If AssetBase had CreatorID we could pass that along as well
+                new MultipartForm.Parameter("CreatorID", asset.Metadata.CreatorID),
                 new MultipartForm.Parameter("Temporary", asset.Temporary ? "1" : "0"),
                 new MultipartForm.Parameter("Public", isPublic ? "1" : "0"),
                 new MultipartForm.File("Asset", asset.Name, asset.Metadata.ContentType, asset.Data)
@@ -364,7 +366,14 @@ namespace SimianGrid
         /// <returns></returns>
         public bool UpdateContent(string id, byte[] data)
         {
-            AssetBase asset = new AssetBase(id, String.Empty, -1);
+            AssetBase asset = Get(id);
+
+            if (asset == null)
+            {
+                m_log.Warn("[ASSET CONNECTOR]: Failed to fetch asset " + id + " for updating");
+                return false;
+            }
+
             asset.Data = data;
 
             string result = Store(asset);

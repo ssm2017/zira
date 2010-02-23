@@ -164,8 +164,8 @@ namespace SimianGrid
             if (region != null)
             {
                 return GetRegionRange(scopeID,
-                    region.RegionLocX - NEIGHBOR_RADIUS, region.RegionLocX + NEIGHBOR_RADIUS,
-                    region.RegionLocY - NEIGHBOR_RADIUS, region.RegionLocY + NEIGHBOR_RADIUS);
+                    region.RegionLocX - NEIGHBOR_RADIUS, region.RegionLocX + (int)Constants.RegionSize + NEIGHBOR_RADIUS,
+                    region.RegionLocY - NEIGHBOR_RADIUS, region.RegionLocY + (int)Constants.RegionSize + NEIGHBOR_RADIUS);
             }
 
             return new List<GridRegion>(0);
@@ -211,7 +211,7 @@ namespace SimianGrid
             }
             else
             {
-                m_log.Warn("[GRID CONNECTOR]: Grid service did not find a match for region at " + position);
+                m_log.WarnFormat("[GRID CONNECTOR]: Grid service did not find a match for region at {0},{1}", x / 256, y / 256);
                 return null;
             }
         }
@@ -316,8 +316,22 @@ namespace SimianGrid
 
         public int GetRegionFlags(UUID scopeID, UUID regionID)
         {
-            // TODO: Oh good, another undocumented bitflag/enum
-            return -1;
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "GetScene" },
+                { "SceneID", regionID.ToString() }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            if (response["Success"].AsBoolean())
+            {
+                return response["Enabled"].AsBoolean() ? (int)OpenSim.Data.RegionFlags.RegionOnline : 0;
+            }
+            else
+            {
+                m_log.Warn("[GRID CONNECTOR]: Grid service did not find a match for region " + regionID + " during region flags check");
+                return -1;
+            }
         }
 
         #endregion IGridService
@@ -369,12 +383,12 @@ namespace SimianGrid
 
             region.ServerURI = extraData["ServerURI"].AsString();
 
-            IPAddress internalAddress, externalAddress;
+            IPAddress internalAddress;
             IPAddress.TryParse(extraData["InternalAddress"].AsString(), out internalAddress);
-            IPAddress.TryParse(extraData["ExternalAddress"].AsString(), out externalAddress);
-            if (internalAddress == null || externalAddress == null)
-                return null;
+            if (internalAddress == null)
+                internalAddress = IPAddress.Any;
 
+            region.InternalEndPoint = new IPEndPoint(internalAddress, extraData["InternalPort"].AsInteger());
             region.TerrainImage = extraData["MapTexture"].AsUUID();
             region.Access = (byte)extraData["Access"].AsInteger();
             region.RegionSecret = extraData["RegionSecret"].AsString();

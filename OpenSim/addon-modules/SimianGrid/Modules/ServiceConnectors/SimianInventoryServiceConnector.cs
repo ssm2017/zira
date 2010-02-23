@@ -553,6 +553,7 @@ namespace SimianGrid
                 { "OwnerID", item.Owner.ToString() },
                 { "Name", item.Name },
                 { "Description", item.Description },
+                { "CreatorID", item.CreatorId },
                 { "ExtraData", OSDParser.SerializeJsonString(extraData) }
             };
 
