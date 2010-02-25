@@ -211,7 +211,8 @@ namespace SimianGrid
             }
             else
             {
-                m_log.WarnFormat("[GRID CONNECTOR]: Grid service did not find a match for region at {0},{1}", x / 256, y / 256);
+                m_log.InfoFormat("[GRID CONNECTOR]: Grid service did not find a match for region at {0},{1}",
+                    x / Constants.RegionSize, y / Constants.RegionSize);
                 return null;
             }
         }

@@ -156,7 +156,7 @@ namespace SimianGrid
 
         public bool SetAvatar(UUID userID, AvatarData avatar)
         {
-            m_log.Error("[AVATAR CONNECTOR]: SetAvatar called for " + userID);
+            m_log.Debug("[AVATAR CONNECTOR]: SetAvatar called for " + userID);
 
             if (avatar.AvatarType == 1) // LLAvatar
             {

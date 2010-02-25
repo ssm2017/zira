@@ -66,8 +66,24 @@ namespace SimianGrid
 
         public SimianPresenceServiceConnector() { }
         public string Name { get { return "SimianPresenceServiceConnector"; } }
-        public void AddRegion(Scene scene) { scene.RegisterModuleInterface<IPresenceService>(this); }
-        public void RemoveRegion(Scene scene) { scene.UnregisterModuleInterface<IPresenceService>(this); }
+        public void AddRegion(Scene scene)
+        {
+            scene.RegisterModuleInterface<IPresenceService>(this);
+
+            scene.EventManager.OnMakeRootAgent += MakeRootAgentHandler;
+            scene.EventManager.OnNewClient += NewClientHandler;
+
+            LogoutRegionAgents(scene.RegionInfo.RegionID);
+        }
+        public void RemoveRegion(Scene scene)
+        {
+            scene.UnregisterModuleInterface<IPresenceService>(this);
+
+            scene.EventManager.OnMakeRootAgent -= MakeRootAgentHandler;
+            scene.EventManager.OnNewClient -= NewClientHandler;
+
+            LogoutRegionAgents(scene.RegionInfo.RegionID);
+        }
 
         #endregion ISharedRegionModule
 
@@ -256,6 +272,40 @@ namespace SimianGrid
 
         #endregion IPresenceService
 
+        #region Presence Detection
+
+        private void MakeRootAgentHandler(ScenePresence sp)
+        {
+            m_log.DebugFormat("[PRESENCE DETECTOR]: Detected root presence {0} in {1}", sp.UUID, sp.Scene.RegionInfo.RegionName);
+            ReportAgent(sp.ControllingClient.SessionId, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+        }
+
+        private void NewClientHandler(IClientAPI client)
+        {
+            client.OnLogout += LogoutHandler;
+        }
+
+        private void LogoutHandler(IClientAPI client)
+        {
+            client.OnLogout -= LogoutHandler;
+
+            ScenePresence sp = null;
+            Vector3 position = new Vector3(128f, 128f, 0f);
+            Vector3 lookat = Vector3.UnitX;
+
+            if (client.Scene is Scene && ((Scene)client.Scene).TryGetAvatar(client.AgentId, out sp))
+            {
+                position = sp.AbsolutePosition;
+                lookat = sp.Lookat;
+            }
+
+            LogoutAgent(client.SessionId, position, lookat);
+        }
+
+        #endregion Presence Detection
+
+        #region Helpers
+
         private OSDMap GetUserData(UUID userID)
         {
             m_log.DebugFormat("[PRESENCE CONNECTOR]: Requesting user data for " + userID);
@@ -362,5 +412,7 @@ namespace SimianGrid
 
             return info;
         }
+
+        #endregion Helpers
     }
 }
