@@ -718,7 +718,7 @@ namespace SimianGrid
                     invItem.Owner = item["OwnerID"].AsUUID();
 
                     OSDMap extraData = item["ExtraData"] as OSDMap;
-                    if (extraData != null)
+                    if (extraData != null && extraData.Count > 0)
                     {
                         invItem.Flags = extraData["Flags"].AsUInteger();
                         invItem.GroupID = extraData["GroupID"].AsUUID();

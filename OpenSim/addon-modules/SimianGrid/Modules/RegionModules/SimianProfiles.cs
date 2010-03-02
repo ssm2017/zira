@@ -39,6 +39,7 @@ using OpenSim.Framework;
 using OpenSim.Framework.Client;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
+using OpenSim.Services.Interfaces;
 
 namespace SimianGrid
 {
@@ -59,7 +60,7 @@ namespace SimianGrid
 
         public SimianProfiles() { }
         public string Name { get { return "SimianProfiles"; } }
-        public void AddRegion(Scene scene) { scene.EventManager.OnClientConnect += ClientConnectHandler; }
+        public void AddRegion(Scene scene) { CheckEstateManager(scene); scene.EventManager.OnClientConnect += ClientConnectHandler; }
         public void RemoveRegion(Scene scene) { scene.EventManager.OnClientConnect -= ClientConnectHandler; }
 
         #endregion INonSharedRegionModule
@@ -210,5 +211,31 @@ namespace SimianGrid
         }
 
         #endregion Profiles
+
+        /// <summary>
+        /// Sanity checks regions for a valid estate owner at startup
+        /// </summary>
+        private void CheckEstateManager(Scene scene)
+        {
+            EstateSettings estate = scene.RegionInfo.EstateSettings;
+
+            if (estate.EstateOwner == UUID.Zero)
+            {
+                // Attempt to lookup the grid admin
+                UserAccount admin = scene.UserAccountService.GetUserAccount(scene.RegionInfo.ScopeID, UUID.Zero);
+                if (admin != null)
+                {
+                    m_log.InfoFormat("[PROFILES]: Setting estate {0} (ID: {1}) owner to {2}", estate.EstateName,
+                        estate.EstateID, admin.Name);
+
+                    estate.EstateOwner = admin.PrincipalID;
+                    estate.Save();
+                }
+                else
+                {
+                    m_log.WarnFormat("[PROFILES]: Estate {0} (ID: {1}) does not have an owner", estate.EstateName, estate.EstateID);
+                }
+            }
+        }
     }
 }

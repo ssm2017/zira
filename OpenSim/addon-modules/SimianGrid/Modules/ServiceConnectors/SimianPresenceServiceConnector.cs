@@ -241,7 +241,7 @@ namespace SimianGrid
             for (int i = 0; i < userIDs.Length; i++)
             {
                 UUID userID;
-                if (UUID.TryParse(userIDs[i], out userID))
+                if (UUID.TryParse(userIDs[i], out userID) && userID != UUID.Zero)
                     presences.AddRange(GetSessions(userID));
             }
 

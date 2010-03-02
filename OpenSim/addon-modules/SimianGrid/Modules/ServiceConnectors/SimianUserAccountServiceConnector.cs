@@ -167,7 +167,8 @@ namespace SimianGrid
                 { "RequestMethod", "AddUser" },
                 { "UserID", data.PrincipalID.ToString() },
                 { "Name", data.Name },
-                { "Email", data.Email }
+                { "Email", data.Email },
+                { "AccessLevel", data.UserLevel.ToString() }
             };
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
@@ -182,7 +183,6 @@ namespace SimianGrid
                     { "UserID", data.PrincipalID.ToString() },
                     { "CreationDate", data.Created.ToString() },
                     { "UserFlags", data.UserFlags.ToString() },
-                    { "UserLevel", data.UserLevel.ToString() },
                     { "UserTitle", data.UserTitle }
                 };
 
@@ -222,7 +222,8 @@ namespace SimianGrid
             }
             else
             {
-                m_log.Warn("[ACCOUNT CONNECTOR]: Failed to lookup user account");
+                string lookupValue = (requestArgs.Count > 1) ? requestArgs[1] : "(Unknown)";
+                m_log.Warn("[ACCOUNT CONNECTOR]: Failed to lookup user account with query: " + lookupValue);
             }
 
             return null;
@@ -244,7 +245,7 @@ namespace SimianGrid
             account.Email = response["Email"].AsString();
             account.ServiceURLs = new Dictionary<string, object>(0);
             account.UserFlags = response["UserFlags"].AsInteger();
-            account.UserLevel = response["UserLevel"].AsInteger();
+            account.UserLevel = response["AccessLevel"].AsInteger();
             account.UserTitle = response["UserTitle"].AsString();
             GetFirstLastName(response["Name"].AsString(), out account.FirstName, out account.LastName);
 

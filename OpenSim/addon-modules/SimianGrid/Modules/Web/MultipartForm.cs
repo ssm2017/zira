@@ -65,7 +65,7 @@ namespace SimianGrid
                         string header = string.Format("--{0}\r\nContent-Disposition: form-data; name=\"{1}\"; filename=\"{2}\";\r\nContent-Type: {3}\r\n\r\n",
                             boundary,
                             file.Name,
-                            file.Filename,
+                            !String.IsNullOrEmpty(file.Filename) ? file.Filename : "tempfile",
                             file.ContentType);
 
                         formDataStream.Write(Encoding.UTF8.GetBytes(header), 0, header.Length);
