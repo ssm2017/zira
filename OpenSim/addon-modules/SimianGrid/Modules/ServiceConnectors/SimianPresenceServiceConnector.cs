@@ -256,9 +256,7 @@ namespace SimianGrid
             {
                 { "RequestMethod", "AddUserData" },
                 { "UserID", userID.ToString() },
-                { "HomeSceneID", regionID.ToString() },
-                { "HomePosition", position.ToString() },
-                { "HomeLookAt", lookAt.ToString() }
+                { "HomeLocation", SerializeLocation(regionID, position, lookAt) }
             };
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
@@ -277,7 +275,9 @@ namespace SimianGrid
         private void MakeRootAgentHandler(ScenePresence sp)
         {
             m_log.DebugFormat("[PRESENCE DETECTOR]: Detected root presence {0} in {1}", sp.UUID, sp.Scene.RegionInfo.RegionName);
+
             ReportAgent(sp.ControllingClient.SessionId, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+            SetLastLocation(sp.UUID, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
         }
 
         private void NewClientHandler(IClientAPI client)
@@ -299,6 +299,7 @@ namespace SimianGrid
                 lookat = sp.Lookat;
             }
 
+            SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, position, lookat);
             LogoutAgent(client.SessionId, position, lookat);
         }
 
@@ -386,6 +387,26 @@ namespace SimianGrid
             return presences;
         }
 
+        private bool SetLastLocation(UUID userID, UUID regionID, Vector3 position, Vector3 lookAt)
+        {
+            m_log.DebugFormat("[PRESENCE CONNECTOR]: Setting last location for user  " + userID);
+
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "AddUserData" },
+                { "UserID", userID.ToString() },
+                { "LastLocation", SerializeLocation(regionID, position, lookAt) }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success = response["Success"].AsBoolean();
+
+            if (!success)
+                m_log.Warn("[PRESENCE CONNECTOR]: Failed to set last location for " + userID + ": " + response["Message"].AsString());
+
+            return success;
+        }
+
         private PresenceInfo ResponseToPresenceInfo(OSDMap sessionResponse, OSDMap userResponse)
         {
             if (sessionResponse == null)
@@ -405,12 +426,33 @@ namespace SimianGrid
 
                 info.Login = user["LastLoginDate"].AsDate();
                 info.Logout = user["LastLogoutDate"].AsDate();
-                info.HomeRegionID = user["HomeSceneID"].AsUUID();
-                info.HomePosition = user["HomePosition"].AsVector3();
-                info.HomeLookAt = user["HomeLookAt"].AsVector3();
+                DeserializeLocation(user["HomeLocation"].AsString(), out info.RegionID, out info.Position, out info.LookAt);
             }
 
             return info;
+        }
+
+        private string SerializeLocation(UUID regionID, Vector3 position, Vector3 lookAt)
+        {
+            return String.Format("{0}/{1}/{2}", regionID, position, lookAt);
+        }
+
+        private bool DeserializeLocation(string location, out UUID regionID, out Vector3 position, out Vector3 lookAt)
+        {
+            string[] parts = location.Split('/');
+
+            if (parts != null && parts.Length == 3 &&
+                UUID.TryParse(parts[0], out regionID) &&
+                Vector3.TryParse(parts[1], out position) &&
+                Vector3.TryParse(parts[2], out lookAt))
+            {
+                return true;
+            }
+
+            regionID = UUID.Zero;
+            position = Vector3.Zero;
+            lookAt = Vector3.Zero;
+            return false;
         }
 
         #endregion Helpers
