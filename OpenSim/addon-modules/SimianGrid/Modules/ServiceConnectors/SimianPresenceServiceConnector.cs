@@ -72,6 +72,7 @@ namespace SimianGrid
 
             scene.EventManager.OnMakeRootAgent += MakeRootAgentHandler;
             scene.EventManager.OnNewClient += NewClientHandler;
+            scene.EventManager.OnSignificantClientMovement += SignificantClientMovementHandler;
 
             LogoutRegionAgents(scene.RegionInfo.RegionID);
         }
@@ -81,6 +82,7 @@ namespace SimianGrid
 
             scene.EventManager.OnMakeRootAgent -= MakeRootAgentHandler;
             scene.EventManager.OnNewClient -= NewClientHandler;
+            scene.EventManager.OnSignificantClientMovement -= SignificantClientMovementHandler;
 
             LogoutRegionAgents(scene.RegionInfo.RegionID);
         }
@@ -138,7 +140,7 @@ namespace SimianGrid
             return success;
         }
 
-        public bool LogoutAgent(UUID sessionID, Vector3 position, Vector3 lookat)
+        public bool LogoutAgent(UUID sessionID, Vector3 position, Vector3 lookAt)
         {
             m_log.InfoFormat("[PRESENCE CONNECTOR]: Logout requested for agent with sessionID " + sessionID);
 
@@ -285,22 +287,22 @@ namespace SimianGrid
             client.OnLogout += LogoutHandler;
         }
 
+        private void SignificantClientMovementHandler(IClientAPI client)
+        {
+            ScenePresence sp;
+            if (client.Scene is Scene && ((Scene)client.Scene).TryGetAvatar(client.AgentId, out sp))
+                SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+        }
+
         private void LogoutHandler(IClientAPI client)
         {
             client.OnLogout -= LogoutHandler;
 
-            ScenePresence sp = null;
-            Vector3 position = new Vector3(128f, 128f, 0f);
-            Vector3 lookat = Vector3.UnitX;
-
+            ScenePresence sp;
             if (client.Scene is Scene && ((Scene)client.Scene).TryGetAvatar(client.AgentId, out sp))
-            {
-                position = sp.AbsolutePosition;
-                lookat = sp.Lookat;
-            }
-
-            SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, position, lookat);
-            LogoutAgent(client.SessionId, position, lookat);
+                SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+            
+            LogoutAgent(client.SessionId, Vector3.Zero, Vector3.UnitX);
         }
 
         #endregion Presence Detection
@@ -389,7 +391,7 @@ namespace SimianGrid
 
         private bool SetLastLocation(UUID userID, UUID regionID, Vector3 position, Vector3 lookAt)
         {
-            m_log.DebugFormat("[PRESENCE CONNECTOR]: Setting last location for user  " + userID);
+            //m_log.DebugFormat("[PRESENCE CONNECTOR]: Setting last location for user  " + userID);
 
             NameValueCollection requestArgs = new NameValueCollection
             {
