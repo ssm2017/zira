@@ -168,6 +168,8 @@ namespace SimianGrid
 
                 map["ShapeItem"] = OSD.FromUUID(appearance.BodyItem);
                 map["ShapeAsset"] = OSD.FromUUID(appearance.BodyAsset);
+                map["SkinItem"] = OSD.FromUUID(appearance.SkinItem);
+                map["SkinAsset"] = OSD.FromUUID(appearance.SkinAsset);
                 map["HairItem"] = OSD.FromUUID(appearance.HairItem);
                 map["HairAsset"] = OSD.FromUUID(appearance.HairAsset);
                 map["EyesItem"] = OSD.FromUUID(appearance.EyesItem);

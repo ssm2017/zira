@@ -434,19 +434,24 @@ namespace SimianGrid
 
         private string SerializeLocation(UUID regionID, Vector3 position, Vector3 lookAt)
         {
-            return String.Format("{0}/{1}/{2}", regionID, position, lookAt);
+            return "{" + String.Format("\"SceneID\":\"{0}\",\"Position\":\"{1}\",\"LookAt\":\"{2}\"", regionID, position, lookAt) + "}";
         }
 
         private bool DeserializeLocation(string location, out UUID regionID, out Vector3 position, out Vector3 lookAt)
         {
-            string[] parts = location.Split('/');
+            OSDMap map = null;
 
-            if (parts != null && parts.Length == 3 &&
-                UUID.TryParse(parts[0], out regionID) &&
-                Vector3.TryParse(parts[1], out position) &&
-                Vector3.TryParse(parts[2], out lookAt))
+            try { map = OSDParser.DeserializeJson(location) as OSDMap; }
+            catch { }
+
+            if (map != null)
             {
-                return true;
+                regionID = map["SceneID"].AsUUID();
+                if (Vector3.TryParse(map["Position"].AsString(), out position) &&
+                    Vector3.TryParse(map["LookAt"].AsString(), out lookAt))
+                {
+                    return true;
+                }
             }
 
             regionID = UUID.Zero;
