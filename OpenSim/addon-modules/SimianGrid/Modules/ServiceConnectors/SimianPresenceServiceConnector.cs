@@ -180,7 +180,7 @@ namespace SimianGrid
 
         public bool ReportAgent(UUID sessionID, UUID regionID, Vector3 position, Vector3 lookAt)
         {
-            m_log.DebugFormat("[PRESENCE CONNECTOR]: Updating session data for agent with sessionID " + sessionID);
+            //m_log.DebugFormat("[PRESENCE CONNECTOR]: Updating session data for agent with sessionID " + sessionID);
 
             NameValueCollection requestArgs = new NameValueCollection
             {
@@ -279,7 +279,6 @@ namespace SimianGrid
             m_log.DebugFormat("[PRESENCE DETECTOR]: Detected root presence {0} in {1}", sp.UUID, sp.Scene.RegionInfo.RegionName);
 
             ReportAgent(sp.ControllingClient.SessionId, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
-            SetLastLocation(sp.UUID, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
         }
 
         private void NewClientHandler(IClientAPI client)
@@ -291,17 +290,14 @@ namespace SimianGrid
         {
             ScenePresence sp;
             if (client.Scene is Scene && ((Scene)client.Scene).TryGetAvatar(client.AgentId, out sp))
-                SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+                ReportAgent(sp.ControllingClient.SessionId, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
         }
 
         private void LogoutHandler(IClientAPI client)
         {
             client.OnLogout -= LogoutHandler;
 
-            ScenePresence sp;
-            if (client.Scene is Scene && ((Scene)client.Scene).TryGetAvatar(client.AgentId, out sp))
-                SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
-            
+            SetLastLocation(client.SessionId);
             LogoutAgent(client.SessionId, Vector3.Zero, Vector3.UnitX);
         }
 
@@ -315,15 +311,15 @@ namespace SimianGrid
 
             NameValueCollection requestArgs = new NameValueCollection
             {
-                { "RequestMethod", "GetUserData" },
+                { "RequestMethod", "GetUser" },
                 { "UserID", userID.ToString() }
             };
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
-            if (response["Success"].AsBoolean())
+            if (response["Success"].AsBoolean() && response["User"] is OSDMap)
                 return response;
             else
-                m_log.Warn("[PRESENCE CONNECTOR]: Failed to retrieve user data for " + userID);
+                m_log.Warn("[PRESENCE CONNECTOR]: Failed to retrieve user data for " + userID + ": " + response["Message"].AsString());
 
             return null;
         }
@@ -389,22 +385,46 @@ namespace SimianGrid
             return presences;
         }
 
-        private bool SetLastLocation(UUID userID, UUID regionID, Vector3 position, Vector3 lookAt)
+        /// <summary>
+        /// Fetch the last known avatar location with GetSession and persist it
+        /// as user data with AddUserData
+        /// </summary>
+        private bool SetLastLocation(UUID sessionID)
         {
-            //m_log.DebugFormat("[PRESENCE CONNECTOR]: Setting last location for user  " + userID);
-
             NameValueCollection requestArgs = new NameValueCollection
             {
-                { "RequestMethod", "AddUserData" },
-                { "UserID", userID.ToString() },
-                { "LastLocation", SerializeLocation(regionID, position, lookAt) }
+                { "RequestMethod", "GetSession" },
+                { "SessionID", sessionID.ToString() }
             };
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
             bool success = response["Success"].AsBoolean();
 
-            if (!success)
-                m_log.Warn("[PRESENCE CONNECTOR]: Failed to set last location for " + userID + ": " + response["Message"].AsString());
+            if (success)
+            {
+                UUID userID = response["UserID"].AsUUID();
+                UUID sceneID = response["SceneID"].AsUUID();
+                Vector3 position = response["ScenePosition"].AsVector3();
+                Vector3 lookAt = response["SceneLookAt"].AsVector3();
+
+                requestArgs = new NameValueCollection
+                {
+                    { "RequestMethod", "AddUserData" },
+                    { "UserID", userID.ToString() },
+                    { "LastLocation", SerializeLocation(sceneID, position, lookAt) }
+                };
+
+                response = WebUtil.PostToService(m_serverUrl, requestArgs);
+                success = response["Success"].AsBoolean();
+
+                if (!success)
+                    m_log.Warn("[PRESENCE CONNECTOR]: Failed to set last location for " + userID + ": " + response["Message"].AsString());
+            }
+            else
+            {
+                m_log.Warn("[PRESENCE CONNECTOR]: Failed to retrieve presence information for session " + sessionID +
+                    " while saving last location: " + response["Message"].AsString());
+            }
 
             return success;
         }
@@ -428,7 +448,7 @@ namespace SimianGrid
 
                 info.Login = user["LastLoginDate"].AsDate();
                 info.Logout = user["LastLogoutDate"].AsDate();
-                DeserializeLocation(user["HomeLocation"].AsString(), out info.RegionID, out info.Position, out info.LookAt);
+                DeserializeLocation(user["HomeLocation"].AsString(), out info.HomeRegionID, out info.HomePosition, out info.HomeLookAt);
             }
 
             return info;
