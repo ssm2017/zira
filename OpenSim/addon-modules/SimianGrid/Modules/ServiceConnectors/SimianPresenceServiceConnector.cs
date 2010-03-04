@@ -279,6 +279,7 @@ namespace SimianGrid
             m_log.DebugFormat("[PRESENCE DETECTOR]: Detected root presence {0} in {1}", sp.UUID, sp.Scene.RegionInfo.RegionName);
 
             ReportAgent(sp.ControllingClient.SessionId, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+            SetLastLocation(sp.UUID, sp.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
         }
 
         private void NewClientHandler(IClientAPI client)
@@ -407,24 +408,31 @@ namespace SimianGrid
                 Vector3 position = response["ScenePosition"].AsVector3();
                 Vector3 lookAt = response["SceneLookAt"].AsVector3();
 
-                requestArgs = new NameValueCollection
-                {
-                    { "RequestMethod", "AddUserData" },
-                    { "UserID", userID.ToString() },
-                    { "LastLocation", SerializeLocation(sceneID, position, lookAt) }
-                };
-
-                response = WebUtil.PostToService(m_serverUrl, requestArgs);
-                success = response["Success"].AsBoolean();
-
-                if (!success)
-                    m_log.Warn("[PRESENCE CONNECTOR]: Failed to set last location for " + userID + ": " + response["Message"].AsString());
+                return SetLastLocation(userID, sceneID, position, lookAt);
             }
             else
             {
                 m_log.Warn("[PRESENCE CONNECTOR]: Failed to retrieve presence information for session " + sessionID +
                     " while saving last location: " + response["Message"].AsString());
             }
+
+            return success;
+        }
+
+        private bool SetLastLocation(UUID userID, UUID sceneID, Vector3 position, Vector3 lookAt)
+        {
+            NameValueCollection requestArgs = new NameValueCollection
+                {
+                    { "RequestMethod", "AddUserData" },
+                    { "UserID", userID.ToString() },
+                    { "LastLocation", SerializeLocation(sceneID, position, lookAt) }
+                };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success = response["Success"].AsBoolean();
+
+            if (!success)
+                m_log.Warn("[PRESENCE CONNECTOR]: Failed to set last location for " + userID + ": " + response["Message"].AsString());
 
             return success;
         }
