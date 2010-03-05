@@ -125,7 +125,7 @@ namespace SimianGrid
         {
             List<UserAccount> accounts = new List<UserAccount>();
 
-            m_log.InfoFormat("[ACCOUNT CONNECTOR]: Searching for user accounts with name query " + query);
+            m_log.DebugFormat("[ACCOUNT CONNECTOR]: Searching for user accounts with name query " + query);
 
             NameValueCollection requestArgs = new NameValueCollection
             {
@@ -210,7 +210,8 @@ namespace SimianGrid
         /// <returns>A UserAccount object on success, null on failure</returns>
         private UserAccount GetUser(NameValueCollection requestArgs)
         {
-            m_log.InfoFormat("[ACCOUNT CONNECTOR]: Looking up user account");
+            string lookupValue = (requestArgs.Count > 1) ? requestArgs[1] : "(Unknown)";
+            m_log.DebugFormat("[ACCOUNT CONNECTOR]: Looking up user account with query: " + lookupValue);
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
             if (response["Success"].AsBoolean())
@@ -223,7 +224,6 @@ namespace SimianGrid
             }
             else
             {
-                string lookupValue = (requestArgs.Count > 1) ? requestArgs[1] : "(Unknown)";
                 m_log.Warn("[ACCOUNT CONNECTOR]: Failed to lookup user account with query: " + lookupValue);
             }
 

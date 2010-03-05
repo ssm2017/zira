@@ -355,27 +355,16 @@ namespace SimianGrid
 
                 NameValueCollection requestArgs = new NameValueCollection
                 {
-                    { "RequestMethod", "GetSessions" },
+                    { "RequestMethod", "GetSession" },
                     { "UserID", userID.ToString() }
                 };
 
                 OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
                 if (response["Success"].AsBoolean())
                 {
-                    OSDArray array = response["Sessions"] as OSDArray;
-                    if (array != null)
-                    {
-                        for (int i = 0; i < array.Count; i++)
-                        {
-                            PresenceInfo presence = ResponseToPresenceInfo(array[i] as OSDMap, userResponse);
-                            if (presence != null)
-                                presences.Add(presence);
-                        }
-                    }
-                    else
-                    {
-                        m_log.Warn("[PRESENCE CONNECTOR]: GetSessions returned an invalid response for " + userID);
-                    }
+                    PresenceInfo presence = ResponseToPresenceInfo(response, userResponse);
+                    if (presence != null)
+                        presences.Add(presence);
                 }
                 else
                 {

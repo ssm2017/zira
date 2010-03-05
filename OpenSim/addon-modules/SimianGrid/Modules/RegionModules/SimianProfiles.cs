@@ -29,6 +29,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Reflection;
 using log4net;
 using Mono.Addins;
@@ -99,7 +100,7 @@ namespace SimianGrid
                 IClientAPI client = (IClientAPI)clientCore;
 
                 // Classifieds
-                //client.AddGenericPacketHandler("avatarclassifiedsrequest", AvatarClassifiedsRequestHandler);
+                client.AddGenericPacketHandler("avatarclassifiedsrequest", AvatarClassifiedsRequestHandler);
                 client.OnClassifiedInfoRequest += ClassifiedInfoRequestHandler;
                 client.OnClassifiedInfoUpdate += ClassifiedInfoUpdateHandler;
                 client.OnClassifiedDelete += ClassifiedDeleteHandler;
@@ -125,18 +126,40 @@ namespace SimianGrid
 
         #region Classifieds
 
+        private void AvatarClassifiedsRequestHandler(Object sender, string method, List<String> args)
+        {
+            if (!(sender is IClientAPI))
+                return;
+            IClientAPI client = (IClientAPI)sender;
+
+            UUID targetAvatarID;
+            if (args.Count < 1 || !UUID.TryParse(args[0], out targetAvatarID))
+            {
+                m_log.Error("[PROFILES]: Unrecognized arguments for " + method);
+                return;
+            }
+
+            // FIXME: Query the generic key/value store for classifieds
+            client.SendAvatarClassifiedReply(targetAvatarID, new Dictionary<UUID, string>(0));
+        }
+
         private void ClassifiedInfoRequestHandler(UUID classifiedID, IClientAPI client)
         {
+            // FIXME: Fetch this info
+            client.SendClassifiedInfoReply(classifiedID, UUID.Zero, 0, Utils.DateTimeToUnixTime(DateTime.UtcNow + TimeSpan.FromDays(1)),
+                0, String.Empty, String.Empty, UUID.Zero, 0, UUID.Zero, String.Empty, Vector3.Zero, String.Empty, 0, 0);
         }
 
         private void ClassifiedInfoUpdateHandler(UUID classifiedID, uint category, string name, string description,
             UUID parcelID, uint parentEstate, UUID snapshotID, Vector3 globalPos, byte classifiedFlags, int price,
             IClientAPI client)
         {
+            // FIXME: Save this info
         }
 
         private void ClassifiedDeleteHandler(UUID classifiedID, IClientAPI client)
         {
+            // FIXME: Delete the specified classified ad
         }
 
         #endregion Classifieds
@@ -145,19 +168,49 @@ namespace SimianGrid
 
         private void HandleAvatarPicksRequest(Object sender, string method, List<String> args)
         {
+            if (!(sender is IClientAPI))
+                return;
+            IClientAPI client = (IClientAPI)sender;
+
+            UUID targetAvatarID;
+            if (args.Count < 1 || !UUID.TryParse(args[0], out targetAvatarID))
+            {
+                m_log.Error("[PROFILES]: Unrecognized arguments for " + method);
+                return;
+            }
+
+            // FIXME: Fetch these
+            client.SendAvatarPicksReply(targetAvatarID, new Dictionary<UUID, string>(0));
         }
 
         private void HandlePickInfoRequest(Object sender, string method, List<String> args)
         {
+            if (!(sender is IClientAPI))
+                return;
+            IClientAPI client = (IClientAPI)sender;
+
+            UUID avatarID;
+            UUID pickID;
+            if (args.Count < 2 || !UUID.TryParse(args[0], out avatarID) || !UUID.TryParse(args[1], out pickID))
+            {
+                m_log.Error("[PROFILES]: Unrecognized arguments for " + method);
+                return;
+            }
+
+            // FIXME: Fetch this
+            client.SendPickInfoReply(pickID, avatarID, false, UUID.Zero, String.Empty, String.Empty, UUID.Zero, String.Empty,
+                String.Empty, String.Empty, Vector3.Zero, 0, false);
         }
 
         private void PickInfoUpdateHandler(IClientAPI client, UUID pickID, UUID creatorID, bool topPick, string name,
             string desc, UUID snapshotID, int sortOrder, bool enabled)
         {
+            // FIXME: Save this
         }
 
         private void PickDeleteHandler(IClientAPI client, UUID pickID)
         {
+            // FIXME: Delete
         }
 
         #endregion Picks
@@ -166,10 +219,24 @@ namespace SimianGrid
 
         private void HandleAvatarNotesRequest(Object sender, string method, List<String> args)
         {
+            if (!(sender is IClientAPI))
+                return;
+            IClientAPI client = (IClientAPI)sender;
+
+            UUID targetAvatarID;
+            if (args.Count < 1 || !UUID.TryParse(args[0], out targetAvatarID))
+            {
+                m_log.Error("[PROFILES]: Unrecognized arguments for " + method);
+                return;
+            }
+
+            // FIXME: Fetch this
+            client.SendAvatarNotesReply(targetAvatarID, String.Empty);
         }
 
         private void AvatarNotesUpdateHandler(IClientAPI client, UUID targetID, string notes)
         {
+            // FIXME: Save this
         }
 
         #endregion Notes
@@ -178,36 +245,105 @@ namespace SimianGrid
 
         private void RequestAvatarPropertiesHandler(IClientAPI client, UUID avatarID)
         {
-            //client.SendAvatarProperties(avatarID, aboutText, bornOn, charterMember, flAbout, flags, flImageID, imageID, profileUrl, partnerID);
+            OSDMap user = FetchUserData(avatarID);
+
+            ProfileFlags flags = ProfileFlags.AllowPublish | ProfileFlags.MaturePublish;
+
+            if (user != null)
+            {
+                OSDMap about = null;
+                if (user.ContainsKey("LLAbout"))
+                {
+                    try { about = OSDParser.DeserializeJson(user["LLAbout"].AsString()) as OSDMap; }
+                    catch { }
+                }
+
+                if (about == null)
+                    about = new OSDMap(0);
+
+                // Check if this user is a grid operator
+                byte[] charterMember;
+                if (user["AccessLevel"].AsInteger() >= 200)
+                    charterMember = Utils.StringToBytes("Operator");
+                else
+                    charterMember = Utils.EmptyBytes;
+
+                // Check if the user is online
+                if (client.Scene is Scene)
+                {
+                    OpenSim.Services.Interfaces.PresenceInfo[] presences = ((Scene)client.Scene).PresenceService.GetAgents(new string[] { avatarID.ToString() });
+                    if (presences != null && presences.Length > 0)
+                        flags |= ProfileFlags.Online;
+                }
+
+                // Check if the user is identified
+                if (user["Identified"].AsBoolean())
+                    flags |= ProfileFlags.Identified;
+
+                client.SendAvatarProperties(avatarID, about["About"].AsString(), user["CreationDate"].AsDate().ToString("M/d/yyyy",
+                    System.Globalization.CultureInfo.InvariantCulture), charterMember, about["FLAbout"].AsString(), (uint)flags,
+                    about["FLImage"].AsUUID(), about["Image"].AsUUID(), about["URL"].AsString(), user["Partner"].AsUUID());
+
+            }
+            else
+            {
+                client.SendAvatarProperties(avatarID, String.Empty, "1/1/1970", Utils.EmptyBytes,
+                    String.Empty, (uint)flags, UUID.Zero, UUID.Zero, String.Empty, UUID.Zero);
+            }
         }
 
         private void UpdateAvatarPropertiesHandler(IClientAPI client, UserProfileData profileData)
         {
-            //UserProfile.ID = AgentId;
-            //UserProfile.AboutText = Utils.BytesToString(Properties.AboutText);
-            //UserProfile.FirstLifeAboutText = Utils.BytesToString(Properties.FLAboutText);
-            //UserProfile.FirstLifeImage = Properties.FLImageID;
-            //UserProfile.Image = Properties.ImageID;
-            //UserProfile.ProfileUrl = Utils.BytesToString(Properties.ProfileURL);
-            //UserProfile.UserFlags &= ~3;
+            OSDMap map = new OSDMap
+            {
+                { "About", OSD.FromString(profileData.AboutText) },
+                { "Image", OSD.FromUUID(profileData.Image) },
+                { "FLAbout", OSD.FromString(profileData.FirstLifeAboutText) },
+                { "FLImage", OSD.FromUUID(profileData.FirstLifeImage) },
+                { "URL", OSD.FromString(profileData.ProfileUrl) }
+            };
+
+            AddUserData(client.AgentId, "LLAbout", map);
         }
 
         private void AvatarInterestUpdateHandler(IClientAPI client, uint wantmask, string wanttext, uint skillsmask,
             string skillstext, string languages)
         {
-            m_log.Error("[PROFILES]: AvatarInterestUpdateHandler");
+            OSDMap map = new OSDMap
+            {
+                { "WantMask", OSD.FromInteger(wantmask) },
+                { "WantText", OSD.FromString(wanttext) },
+                { "SkillsMask", OSD.FromInteger(skillsmask) },
+                { "SkillsText", OSD.FromString(skillstext) },
+                { "Languages", OSD.FromString(languages) }
+            };
+
+            AddUserData(client.AgentId, "LLInterests", map);
         }
 
         private void UserInfoRequestHandler(IClientAPI client)
         {
             m_log.Error("[PROFILES]: UserInfoRequestHandler");
 
-            //client.SendUserInfoReply(imViaEmail, visible, email);
+            // Fetch this user's e-mail address
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "GetUser" },
+                { "UserID", client.AgentId.ToString() }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            string email = response["Email"].AsString();
+
+            if (!response["Success"].AsBoolean())
+                m_log.Warn("[PROFILES]: GetUser failed during a user info request for " + client.Name);
+
+            client.SendUserInfoReply(false, true, email);
         }
 
         private void UpdateUserInfoHandler(bool imViaEmail, bool visible, IClientAPI client)
         {
-            m_log.Error("[PROFILES]: UpdateUserInfoHandler");
+            m_log.Info("[PROFILES]: Ignoring user info update from " + client.Name);
         }
 
         #endregion Profiles
@@ -236,6 +372,45 @@ namespace SimianGrid
                     m_log.WarnFormat("[PROFILES]: Estate {0} (ID: {1}) does not have an owner", estate.EstateName, estate.EstateID);
                 }
             }
+        }
+
+        private bool AddUserData(UUID userID, string key, OSDMap value)
+        {
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "AddUserData" },
+                { "UserID", userID.ToString() },
+                { key, OSDParser.SerializeJsonString(value) }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success = response["Success"].AsBoolean();
+
+            if (!success)
+                m_log.WarnFormat("[PROFILES]: Failed to add user data with key {0} for {1}: {2}", key, userID, response["Message"].AsString());
+
+            return success;
+        }
+
+        private OSDMap FetchUserData(UUID userID)
+        {
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "GetUser" },
+                { "UserID", userID.ToString() }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            if (response["Success"].AsBoolean() && response["User"] is OSDMap)
+            {
+                return (OSDMap)response["User"];
+            }
+            else
+            {
+                m_log.Error("[PROFILES]: Failed to fetch user data for " + userID + ": " + response["Message"].AsString());
+            }
+
+            return null;
         }
     }
 }
