@@ -44,6 +44,10 @@ using OpenSim.Services.Interfaces;
 
 namespace SimianGrid
 {
+    /// <summary>
+    /// Connects avatar profile and classified queries to the SimianGrid
+    /// backend
+    /// </summary>
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule")]
     public class SimianProfiles : INonSharedRegionModule
     {

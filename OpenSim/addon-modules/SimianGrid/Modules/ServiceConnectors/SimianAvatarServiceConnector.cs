@@ -55,7 +55,6 @@ namespace SimianGrid
         private static string ZeroID = UUID.Zero.ToString();
 
         private string m_serverUrl = String.Empty;
-        private IImprovedAssetCache m_cache;
 
         #region ISharedRegionModule
 
@@ -136,7 +135,20 @@ namespace SimianGrid
                     appearance.Wearables = wearables;
                     appearance.AvatarHeight = (float)map["Height"].AsReal();
 
-                    return new AvatarData(appearance);
+                    AvatarData avatar = new AvatarData(appearance);
+                    
+                    // Get attachments
+                    map = null;
+                    try { map = OSDParser.DeserializeJson(response["LLAttachments"].AsString()) as OSDMap; }
+                    catch { }
+
+                    if (map != null)
+                    {
+                        foreach (KeyValuePair<string, OSD> kvp in map)
+                            avatar.Data[kvp.Key] = kvp.Value.AsString();
+                    }
+
+                    return avatar;
                 }
                 else
                 {
@@ -193,11 +205,19 @@ namespace SimianGrid
                 map["SkirtItem"] = OSD.FromUUID(appearance.SkirtItem);
                 map["SkirtAsset"] = OSD.FromUUID(appearance.SkirtAsset);
 
+                OSDMap items = new OSDMap();
+                foreach (KeyValuePair<string, string> kvp in avatar.Data)
+                {
+                    if (kvp.Key.StartsWith("_ap_"))
+                        items.Add(kvp.Key, OSD.FromString(kvp.Value));
+                }
+
                 NameValueCollection requestArgs = new NameValueCollection
                 {
                     { "RequestMethod", "AddUserData" },
                     { "UserID", userID.ToString() },
-                    { "LLAppearance", OSDParser.SerializeJsonString(map) }
+                    { "LLAppearance", OSDParser.SerializeJsonString(map) },
+                    { "LLAttachments", OSDParser.SerializeJsonString(items) }
                 };
 
                 OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);

@@ -25,33 +25,24 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-using log4net;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
-using Nini.Config;
-using OpenSim.Framework;
-using OpenSim.Framework.Communications;
-using OpenSim.Framework.Servers.HttpServer;
-using OpenSim.Services.Interfaces;
-using OpenSim.Server.Base;
-using OpenMetaverse;
-using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Reflection;
-using OpenSim.Region.Framework.Interfaces;
-using OpenSim.Region.Framework.Scenes;
-using OpenSim.Services.Interfaces;
 using log4net;
 using Mono.Addins;
 using Nini.Config;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
+using OpenSim.Framework;
+using OpenSim.Region.Framework.Interfaces;
+using OpenSim.Region.Framework.Scenes;
+using OpenSim.Services.Interfaces;
 
 namespace SimianGrid
 {
+    /// <summary>
+    /// Connects authentication/authorization to the SimianGrid backend
+    /// </summary>
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule")]
     public class SimianAuthenticationServiceConnector : IAuthenticationService, ISharedRegionModule
     {

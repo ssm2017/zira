@@ -38,13 +38,15 @@ using Nini.Config;
 using OpenSim.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
-using OpenSim.Server.Base;
 using OpenSim.Services.Interfaces;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace SimianGrid
 {
+    /// <summary>
+    /// Connects to the SimianGrid asset service
+    /// </summary>
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule")]
     public class SimianAssetServiceConnector : IAssetService, ISharedRegionModule
     {

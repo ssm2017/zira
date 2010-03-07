@@ -284,7 +284,7 @@ namespace SimianGrid
 
         private void NewClientHandler(IClientAPI client)
         {
-            client.OnLogout += LogoutHandler;
+            client.OnConnectionClosed += LogoutHandler;
         }
 
         private void SignificantClientMovementHandler(IClientAPI client)
@@ -296,10 +296,26 @@ namespace SimianGrid
 
         private void LogoutHandler(IClientAPI client)
         {
-            client.OnLogout -= LogoutHandler;
+            if (client.IsLoggingOut)
+            {
+                client.OnConnectionClosed -= LogoutHandler;
 
-            SetLastLocation(client.SessionId);
-            LogoutAgent(client.SessionId, Vector3.Zero, Vector3.UnitX);
+                object obj;
+                if (client.Scene.TryGetAvatar(client.AgentId, out obj) && obj is ScenePresence)
+                {
+                    // The avatar is still in the scene, we can get the exact logout position
+                    ScenePresence sp = (ScenePresence)obj;
+                    SetLastLocation(client.AgentId, client.Scene.RegionInfo.RegionID, sp.AbsolutePosition, sp.Lookat);
+                }
+                else
+                {
+                    // The avatar was already removed from the scene, store LastLocation using the most recent session data
+                    m_log.Warn("[PRESENCE]: " + client.Name + " has already been removed from the scene, storing approximate LastLocation");
+                    SetLastLocation(client.SessionId);
+                }
+
+                LogoutAgent(client.SessionId, Vector3.Zero, Vector3.UnitX);
+            }
         }
 
         #endregion Presence Detection
