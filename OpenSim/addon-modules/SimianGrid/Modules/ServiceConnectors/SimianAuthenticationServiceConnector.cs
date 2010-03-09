@@ -76,7 +76,7 @@ namespace SimianGrid
             IConfig assetConfig = source.Configs["AuthenticationService"];
             if (assetConfig == null)
             {
-                m_log.Error("[AUTH CONNECTOR]: AuthenticationService missing from OpanSim.ini");
+                m_log.Error("[AUTH CONNECTOR]: AuthenticationService missing from OpenSim.ini");
                 throw new Exception("Authentication connector init error");
             }
 

@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Reflection;
 using OpenSim.Framework;
 using OpenSim.Region.Framework.Interfaces;
@@ -49,6 +50,7 @@ namespace SimianGrid
                 MethodBase.GetCurrentMethod().DeclaringType);
 
         private string m_serverUrl = String.Empty;
+        private ExpiringCache<UUID, UserAccount> m_accountCache = new ExpiringCache<UUID, UserAccount>();
 
         #region ISharedRegionModule
 
@@ -112,6 +114,11 @@ namespace SimianGrid
 
         public UserAccount GetUserAccount(UUID scopeID, UUID userID)
         {
+            // Cache check
+            UserAccount account;
+            if (m_accountCache.TryGetValue(userID, out account))
+                return account;
+
             NameValueCollection requestArgs = new NameValueCollection
             {
                 { "RequestMethod", "GetUser" },
@@ -190,8 +197,15 @@ namespace SimianGrid
                 response = WebUtil.PostToService(m_serverUrl, requestArgs);
                 bool success = response["Success"].AsBoolean();
 
-                if (!success)
+                if (success)
+                {
+                    // Cache the user account info
+                    m_accountCache.AddOrUpdate(data.PrincipalID, data, DateTime.Now + TimeSpan.FromMinutes(2.0d));
+                }
+                else
+                {
                     m_log.Warn("[ACCOUNT CONNECTOR]: Failed to store user account data for " + data.Name + ": " + response["Message"].AsString());
+                }
 
                 return success;
             }
@@ -249,6 +263,9 @@ namespace SimianGrid
             account.UserLevel = response["AccessLevel"].AsInteger();
             account.UserTitle = response["UserTitle"].AsString();
             GetFirstLastName(response["Name"].AsString(), out account.FirstName, out account.LastName);
+
+            // Cache the user account info
+            m_accountCache.AddOrUpdate(account.PrincipalID, account, DateTime.Now + TimeSpan.FromMinutes(2.0d));
 
             return account;
         }

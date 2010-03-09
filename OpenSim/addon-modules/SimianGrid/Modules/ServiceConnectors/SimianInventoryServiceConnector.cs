@@ -345,7 +345,7 @@ namespace SimianGrid
             }
             else
             {
-                m_log.Warn("[INVENTORY CONNECTOR]: Error fetching folder " + folderID + " for " + userID + ": " +
+                m_log.Warn("[INVENTORY CONNECTOR]: Error fetching folder " + folderID + " content for " + userID + ": " +
                     response["Message"].AsString());
                 inventory.Folders = new List<InventoryFolderBase>(0);
                 inventory.Items = new List<InventoryItemBase>(0);
@@ -533,6 +533,9 @@ namespace SimianGrid
             // Create a Permissions struct that is easier to work with
             Permissions perms = new Permissions(item.BasePermissions, item.EveryOnePermissions,
                 item.GroupPermissions, item.NextPermissions, item.CurrentPermissions);
+
+            if (perms.BaseMask == PermissionMask.None)
+                m_log.WarnFormat("[INVENTORY CONNECTOR]: Adding inventory item {0} ({1}) with no base permissions", item.Name, item.ID);
 
             OSDMap extraData = new OSDMap()
             {
