@@ -702,10 +702,15 @@ namespace SimianGrid
             {
                 OSDMap item = items[i] as OSDMap;
 
-                if (item != null)
+                if (item != null && item["Type"].AsString() == "Folder")
                 {
+                    UUID folderID = item["ID"].AsUUID();
+
+                    if (folderID == baseFolder && !includeBaseFolder)
+                        continue;
+
                     invFolders.Add(new InventoryFolderBase(
-                        item["ID"].AsUUID(),
+                        folderID,
                         item["Name"].AsString(),
                         item["OwnerID"].AsUUID(),
                         (short)SLUtil.ContentTypeToSLAssetType(item["ContentType"].AsString()),
@@ -726,7 +731,7 @@ namespace SimianGrid
             {
                 OSDMap item = items[i] as OSDMap;
 
-                if (item != null)
+                if (item != null && item["Type"].AsString() == "Item")
                 {
                     InventoryItemBase invItem = new InventoryItemBase();
                     
