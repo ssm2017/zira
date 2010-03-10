@@ -44,6 +44,21 @@ using OpenSim.Services.Interfaces;
 
 namespace SimianGrid
 {
+    /// <summary>
+    /// Permissions bitflags
+    /// </summary>
+    [Flags]
+    public enum PermissionMask : uint
+    {
+        None = 0,
+        Transfer = 1 << 13,
+        Modify = 1 << 14,
+        Copy = 1 << 15,
+        Move = 1 << 19,
+        Damage = 1 << 20,
+        All = 0x7FFFFFFF
+    }
+
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule")]
     public class SimianInventoryServiceConnector : IInventoryService, ISharedRegionModule
     {
@@ -530,12 +545,17 @@ namespace SimianGrid
             if ((AssetType)item.AssetType == AssetType.Gesture)
                 UpdateGesture(item.Owner, item.ID, item.Flags == 1);
 
-            // Create a Permissions struct that is easier to work with
-            Permissions perms = new Permissions(item.BasePermissions, item.EveryOnePermissions,
-                item.GroupPermissions, item.NextPermissions, item.CurrentPermissions);
-
-            if (perms.BaseMask == PermissionMask.None)
+            if (item.BasePermissions == 0)
                 m_log.WarnFormat("[INVENTORY CONNECTOR]: Adding inventory item {0} ({1}) with no base permissions", item.Name, item.ID);
+
+            OSDMap permissions = new OSDMap
+            {
+                { "BaseMask", OSD.FromInteger(item.BasePermissions) },
+                { "EveryoneMask", OSD.FromInteger(item.EveryOnePermissions) },
+                { "GroupMask", OSD.FromInteger(item.GroupPermissions) },
+                { "NextOwnerMask", OSD.FromInteger(item.NextPermissions) },
+                { "OwnerMask", OSD.FromInteger(item.CurrentPermissions) }
+            };
 
             OSDMap extraData = new OSDMap()
             {
@@ -544,7 +564,7 @@ namespace SimianGrid
                 { "GroupOwned", OSD.FromBoolean(item.GroupOwned) },
                 { "SalePrice", OSD.FromInteger(item.SalePrice) },
                 { "SaleType", OSD.FromInteger(item.SaleType) },
-                { "Permissions", perms.GetOSD() }
+                { "Permissions", permissions }
             };
 
             NameValueCollection requestArgs = new NameValueCollection
@@ -709,10 +729,12 @@ namespace SimianGrid
                 if (item != null)
                 {
                     InventoryItemBase invItem = new InventoryItemBase();
+                    
                     invItem.AssetID = item["AssetID"].AsUUID();
                     invItem.AssetType = SLUtil.ContentTypeToSLAssetType(item["ContentType"].AsString());
                     invItem.CreationDate = item["CreationDate"].AsInteger();
                     invItem.CreatorId = item["CreatorID"].AsString();
+                    invItem.CreatorIdAsUuid = item["CreatorID"].AsUUID();
                     invItem.Description = item["Description"].AsString();
                     invItem.Folder = item["ParentID"].AsUUID();
                     invItem.ID = item["ID"].AsUUID();
@@ -729,15 +751,21 @@ namespace SimianGrid
                         invItem.SalePrice = extraData["SalePrice"].AsInteger();
                         invItem.SaleType = (byte)extraData["SaleType"].AsInteger();
 
-                        Permissions perms = Permissions.FromOSD(extraData["Permissions"]);
-                        invItem.BasePermissions = (uint)perms.BaseMask;
-                        invItem.CurrentPermissions = (uint)perms.OwnerMask;
-                        invItem.EveryOnePermissions = (uint)perms.EveryoneMask;
-                        invItem.GroupPermissions = (uint)perms.GroupMask;
-                        invItem.NextPermissions = (uint)perms.NextOwnerMask;
+                        OSDMap perms = extraData["Permissions"] as OSDMap;
+                        if (perms != null)
+                        {
+                            invItem.BasePermissions = perms["BaseMask"].AsUInteger();
+                            invItem.CurrentPermissions = perms["OwnerMask"].AsUInteger();
+                            invItem.EveryOnePermissions = perms["EveryoneMask"].AsUInteger();
+                            invItem.GroupPermissions = perms["GroupMask"].AsUInteger();
+                            invItem.NextPermissions = perms["NextOwnerMask"].AsUInteger();
+                        }
                     }
-                    else
+
+                    if (invItem.BasePermissions == 0)
                     {
+                        m_log.InfoFormat("[INVENTORY CONNECTOR]: Forcing item permissions to full for item {0} ({1})",
+                            invItem.Name, invItem.ID);
                         invItem.BasePermissions = (uint)PermissionMask.All;
                         invItem.CurrentPermissions = (uint)PermissionMask.All;
                         invItem.EveryOnePermissions = (uint)PermissionMask.All;

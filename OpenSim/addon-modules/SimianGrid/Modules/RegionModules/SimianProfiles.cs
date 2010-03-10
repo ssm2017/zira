@@ -45,6 +45,19 @@ using OpenSim.Services.Interfaces;
 namespace SimianGrid
 {
     /// <summary>
+    /// Avatar profile flags
+    /// </summary>
+    [Flags]
+    public enum ProfileFlags : uint
+    {
+        AllowPublish = 1,
+        MaturePublish = 2,
+        Identified = 4,
+        Transacted = 8,
+        Online = 16
+    }
+
+    /// <summary>
     /// Connects avatar profile and classified queries to the SimianGrid
     /// backend
     /// </summary>
