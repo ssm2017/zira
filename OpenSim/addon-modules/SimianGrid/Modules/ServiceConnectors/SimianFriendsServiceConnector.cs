@@ -99,8 +99,8 @@ namespace SimianGrid
         {
             Dictionary<UUID, FriendInfo> friends = new Dictionary<UUID, FriendInfo>();
 
-            OSDArray friendsArray = GetGenericEntries(principalID, "Friends");
-            OSDArray friendedMeArray = GetGenericEntries(principalID, "FriendedMe");
+            OSDArray friendsArray = GetFriended(principalID);
+            OSDArray friendedMeArray = GetFriendedBy(principalID);
 
             // Load the list of friends and their granted permissions
             for (int i = 0; i < friendsArray.Count; i++)
@@ -113,7 +113,8 @@ namespace SimianGrid
                     FriendInfo friend = new FriendInfo();
                     friend.PrincipalID = principalID;
                     friend.Friend = friendID.ToString();
-                    friend.TheirFlags = friendEntry["Value"].AsInteger();
+                    friend.MyFlags = friendEntry["Value"].AsInteger();
+                    friend.TheirFlags = -1;
 
                     friends[friendID] = friend;
                 }
@@ -125,11 +126,11 @@ namespace SimianGrid
                 OSDMap friendedMeEntry = friendedMeArray[i] as OSDMap;
                 if (friendedMeEntry != null)
                 {
-                    UUID friendID = friendedMeEntry["Key"].AsUUID();
+                    UUID friendID = friendedMeEntry["OwnerID"].AsUUID();
 
                     FriendInfo friend;
                     if (friends.TryGetValue(friendID, out friend))
-                        friend.MyFlags = friendedMeEntry["Value"].AsInteger();
+                        friend.TheirFlags = friendedMeEntry["Value"].AsInteger();
                 }
             }
 
@@ -156,30 +157,10 @@ namespace SimianGrid
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
             bool success = response["Success"].AsBoolean();
 
-            if (success)
-            {
-                requestArgs = new NameValueCollection
-                {
-                    { "RequestMethod", "AddGeneric" },
-                    { "OwnerID", friend },
-                    { "Type", "FriendedMe" },
-                    { "Key", principalID.ToString() },
-                    { "Value", flags.ToString() }
-                };
-
-                response = WebUtil.PostToService(m_serverUrl, requestArgs);
-                success = response["Success"].AsBoolean();
-
-                if (!success)
-                    m_log.Error("[FRIENDS CONNECTOR]: Failed to store reverse friend map " + friend + " for user " + principalID + ": " + response["Message"].AsString());
-
-                return success;
-            }
-            else
-            {
+            if (!success)
                 m_log.Error("[FRIENDS CONNECTOR]: Failed to store friend " + friend + " for user " + principalID + ": " + response["Message"].AsString());
-                return false;
-            }
+
+            return success;
         }
 
         public bool Delete(UUID principalID, string friend)
@@ -198,32 +179,18 @@ namespace SimianGrid
             if (!success)
                 m_log.Error("[FRIENDS CONNECTOR]: Failed to remove friend " + friend + " for user " + principalID + ": " + response["Message"].AsString());
 
-            requestArgs = new NameValueCollection
-            {
-                { "RequestMethod", "RemoveGeneric" },
-                { "OwnerID", friend },
-                { "Type", "FriendedMe" },
-                { "Key", principalID.ToString() }
-            };
-
-            response = WebUtil.PostToService(m_serverUrl, requestArgs);
-            bool success2 = response["Success"].AsBoolean();
-
-            if (!success2)
-                m_log.Error("[FRIENDS CONNECTOR]: Failed to remove reverse friend map " + friend + " for user " + principalID + ": " + response["Message"].AsString());
-
-            return success & success2;
+            return success;
         }
 
         #endregion IFriendsService
 
-        private OSDArray GetGenericEntries(UUID ownerID, string type)
+        private OSDArray GetFriended(UUID ownerID)
         {
             NameValueCollection requestArgs = new NameValueCollection
             {
                 { "RequestMethod", "GetGenerics" },
                 { "OwnerID", ownerID.ToString() },
-                { "Type", type }
+                { "Type", "Friend" }
             };
 
             OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
@@ -233,7 +200,28 @@ namespace SimianGrid
             }
             else
             {
-                m_log.Warn("[FRIENDS CONNECTOR]: Failed to retrieve " + type + " for user " + ownerID + ": " + response["Message"].AsString());
+                m_log.Warn("[FRIENDS CONNECTOR]: Failed to retrieve friends for user " + ownerID + ": " + response["Message"].AsString());
+                return new OSDArray(0);
+            }
+        }
+
+        private OSDArray GetFriendedBy(UUID ownerID)
+        {
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "GetGenerics" },
+                { "Key", ownerID.ToString() },
+                { "Type", "Friend" }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            if (response["Success"].AsBoolean() && response["Entries"] is OSDArray)
+            {
+                return (OSDArray)response["Entries"];
+            }
+            else
+            {
+                m_log.Warn("[FRIENDS CONNECTOR]: Failed to retrieve reverse friends for user " + ownerID + ": " + response["Message"].AsString());
                 return new OSDArray(0);
             }
         }
