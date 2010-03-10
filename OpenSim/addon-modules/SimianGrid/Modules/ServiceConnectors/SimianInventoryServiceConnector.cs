@@ -355,7 +355,7 @@ namespace SimianGrid
             {
                 OSDArray items = (OSDArray)response["Items"];
 
-                inventory.Folders = GetFoldersFromResponse(items, userID, false);
+                inventory.Folders = GetFoldersFromResponse(items, folderID, false);
                 inventory.Items = GetItemsFromResponse(items);
             }
             else
