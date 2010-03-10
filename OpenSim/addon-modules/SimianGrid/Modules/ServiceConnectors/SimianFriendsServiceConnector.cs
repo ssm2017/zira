@@ -95,21 +95,147 @@ namespace SimianGrid
 
         #region IFriendsService
 
-        public FriendInfo[] GetFriends(UUID PrincipalID)
+        public FriendInfo[] GetFriends(UUID principalID)
         {
-            return new FriendInfo[0];
+            Dictionary<UUID, FriendInfo> friends = new Dictionary<UUID, FriendInfo>();
+
+            OSDArray friendsArray = GetGenericEntries(principalID, "Friends");
+            OSDArray friendedMeArray = GetGenericEntries(principalID, "FriendedMe");
+
+            // Load the list of friends and their granted permissions
+            for (int i = 0; i < friendsArray.Count; i++)
+            {
+                OSDMap friendEntry = friendsArray[i] as OSDMap;
+                if (friendEntry != null)
+                {
+                    UUID friendID = friendEntry["Key"].AsUUID();
+
+                    FriendInfo friend = new FriendInfo();
+                    friend.PrincipalID = principalID;
+                    friend.Friend = friendID.ToString();
+                    friend.TheirFlags = friendEntry["Value"].AsInteger();
+
+                    friends[friendID] = friend;
+                }
+            }
+
+            // Load the permissions those friends have granted to this user
+            for (int i = 0; i < friendedMeArray.Count; i++)
+            {
+                OSDMap friendedMeEntry = friendedMeArray[i] as OSDMap;
+                if (friendedMeEntry != null)
+                {
+                    UUID friendID = friendedMeEntry["Key"].AsUUID();
+
+                    FriendInfo friend;
+                    if (friends.TryGetValue(friendID, out friend))
+                        friend.MyFlags = friendedMeEntry["Value"].AsInteger();
+                }
+            }
+
+            // Convert the dictionary of friends to an array and return it
+            FriendInfo[] array = new FriendInfo[friends.Count];
+            int j = 0;
+            foreach (FriendInfo friend in friends.Values)
+                array[j++] = friend;
+
+            return array;
         }
 
-        public bool StoreFriend(UUID PrincipalID, string Friend, int flags)
+        public bool StoreFriend(UUID principalID, string friend, int flags)
         {
-            return false;
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "AddGeneric" },
+                { "OwnerID", principalID.ToString() },
+                { "Type", "Friend" },
+                { "Key", friend },
+                { "Value", flags.ToString() }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success = response["Success"].AsBoolean();
+
+            if (success)
+            {
+                requestArgs = new NameValueCollection
+                {
+                    { "RequestMethod", "AddGeneric" },
+                    { "OwnerID", friend },
+                    { "Type", "FriendedMe" },
+                    { "Key", principalID.ToString() },
+                    { "Value", flags.ToString() }
+                };
+
+                response = WebUtil.PostToService(m_serverUrl, requestArgs);
+                success = response["Success"].AsBoolean();
+
+                if (!success)
+                    m_log.Error("[FRIENDS CONNECTOR]: Failed to store reverse friend map " + friend + " for user " + principalID + ": " + response["Message"].AsString());
+
+                return success;
+            }
+            else
+            {
+                m_log.Error("[FRIENDS CONNECTOR]: Failed to store friend " + friend + " for user " + principalID + ": " + response["Message"].AsString());
+                return false;
+            }
         }
 
-        public bool Delete(UUID PrincipalID, string Friend)
+        public bool Delete(UUID principalID, string friend)
         {
-            return false;
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "RemoveGeneric" },
+                { "OwnerID", principalID.ToString() },
+                { "Type", "Friend" },
+                { "Key", friend }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success = response["Success"].AsBoolean();
+
+            if (!success)
+                m_log.Error("[FRIENDS CONNECTOR]: Failed to remove friend " + friend + " for user " + principalID + ": " + response["Message"].AsString());
+
+            requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "RemoveGeneric" },
+                { "OwnerID", friend },
+                { "Type", "FriendedMe" },
+                { "Key", principalID.ToString() }
+            };
+
+            response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            bool success2 = response["Success"].AsBoolean();
+
+            if (!success2)
+                m_log.Error("[FRIENDS CONNECTOR]: Failed to remove reverse friend map " + friend + " for user " + principalID + ": " + response["Message"].AsString());
+
+            return success & success2;
         }
 
         #endregion IFriendsService
+
+        private OSDArray GetGenericEntries(UUID ownerID, string type)
+        {
+            NameValueCollection requestArgs = new NameValueCollection
+            {
+                { "RequestMethod", "GetGenerics" },
+                { "OwnerID", ownerID.ToString() },
+                { "Type", type }
+            };
+
+            OSDMap response = WebUtil.PostToService(m_serverUrl, requestArgs);
+            if (response["Success"].AsBoolean() && response["Entries"] is OSDArray)
+            {
+                return (OSDArray)response["Entries"];
+            }
+            else
+            {
+                m_log.Warn("[FRIENDS CONNECTOR]: Failed to retrieve " + type + " for user " + ownerID + ": " + response["Message"].AsString());
+                return new OSDArray(0);
+            }
+        }
     }
 }
