@@ -304,6 +304,7 @@ namespace SimianGrid
             }
             else
             {
+                m_log.Warn("[PROFILES]: Failed to fetch profile information for " + client.Name + ", returning default values");
                 client.SendAvatarProperties(avatarID, String.Empty, "1/1/1970", Utils.EmptyBytes,
                     String.Empty, (uint)flags, UUID.Zero, UUID.Zero, String.Empty, UUID.Zero);
             }
