@@ -82,10 +82,10 @@
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.0,Profile=Client"
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.3.5.SP1"
                     {
-                    "Name" = "8:Microsoft .NET Framework 4 Client Profile (x86 and x64)"
-                    "ProductCode" = "8:.NETFramework,Version=v4.0,Profile=Client"
+                    "Name" = "8:.NET Framework 3.5 SP1"
+                    "ProductCode" = "8:Microsoft.Net.Framework.3.5.SP1"
                     }
                     "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Windows.Installer.3.1"
                     {
@@ -325,7 +325,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:VWRAP Launcher"
         "ProductCode" = "8:{47A63EB9-CA83-4FD7-BAED-65910C00DED6}"
-        "PackageCode" = "8:{299F8756-BE73-4AD2-9718-E707E1E16866}"
+        "PackageCode" = "8:{D19DC097-27EA-456C-A62F-A294BDE2EF7E}"
         "UpgradeCode" = "8:{4A0CB239-1A9A-4DAF-B327-DE686E6B3FA2}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
