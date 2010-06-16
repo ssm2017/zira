@@ -44,10 +44,10 @@ namespace RobustMigration
 
             Mono.Options.OptionSet set = new Mono.Options.OptionSet()
             {
-                { "c|connection", "OpenSim database connection string (ex. \"Data Source=localhost;Database=opensim;User ID=opensim;Password=opensim;\")", v => connectionString = v },
-                { "u|user", "SimianGrid user service URL (ex. http://localhost/Grid/)", v => userUrl = v },
-                { "i|inventory", "SimianGrid inventory service URL (ex. http://localhost/Grid/)", v => inventoryUrl = v },
-                { "a|asset", "SimianGrid asset service URL (ex. http://localhost/Grid/?id=)", v => assetUrl = v },
+                { "c=|connection=", "OpenSim database connection string (ex. \"Data Source=localhost;Database=opensim;User ID=opensim;Password=opensim;\")", v => connectionString = v },
+                { "u=|user=", "SimianGrid user service URL (ex. http://localhost/Grid/)", v => userUrl = v },
+                { "i=|inventory=", "SimianGrid inventory service URL (ex. http://localhost/Grid/)", v => inventoryUrl = v },
+                { "a=|asset=", "SimianGrid asset service URL (ex. http://localhost/Grid/)", v => assetUrl = v },
                 { "h|?|help", "Show this help", v => printHelp = true },
                 { "v|version", "Show version information", v => printVersion = true }
             };
@@ -80,12 +80,16 @@ namespace RobustMigration
 
             Console.WriteLine("Starting user migrations");
             UserMigration users = new UserMigration(connectionString, userUrl);
+            Console.WriteLine();
             Console.WriteLine("Starting asset migrations");
             AssetMigration assets = new AssetMigration(connectionString, assetUrl);
+            Console.WriteLine();
             Console.WriteLine("Starting inventory migrations");
             InventoryMigration inventories = new InventoryMigration(connectionString, inventoryUrl, userUrl);
+            Console.WriteLine();
             Console.WriteLine("Starting friend migrations");
             FriendMigration friends = new FriendMigration(connectionString, userUrl);
+            Console.WriteLine();
             Console.WriteLine("Done.");
         }
     }

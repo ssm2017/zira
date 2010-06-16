@@ -37,6 +37,15 @@ using OpenMetaverse.StructuredData;
 
 namespace RobustMigration
 {
+    [Flags]
+    public enum AssetFlags : int
+    {
+        Normal = 0,         // Immutable asset
+        Maptile = 1,        // What it says
+        Rewritable = 2,     // Content can be rewritten
+        Collectable = 4     // Can be GC'ed after some time
+    }
+
     public class AssetMigration
     {
         private MySqlConnection m_connection;
@@ -58,7 +67,7 @@ namespace RobustMigration
                     foreach (var asset in assets)
                     {
                         CreateAsset(asset);
-                        if (++i % 100 == 0) Console.Write(".");
+                        if (++i % 10 == 0) Console.Write(".");
                     }
                 }
             }
@@ -66,10 +75,19 @@ namespace RobustMigration
 
         private void CreateAsset(assets asset)
         {
+            AssetFlags flags = (AssetFlags)asset.assetflags;
             AssetType type = (AssetType)asset.assetType;
             string contentType = LLUtil.SLAssetTypeToContentType((int)type);
             bool isPublic = true;
             string errorMessage = null;
+
+            // Don't bother copying map tiles, garbage-collectibe, or temporary assets
+            if ((flags & AssetFlags.Maptile) == AssetFlags.Maptile ||
+                (flags & AssetFlags.Collectable) == AssetFlags.Collectable ||
+                asset.temporary != 0)
+            {
+                return;
+            }
 
             // Distinguish public and private assets
             switch (type)

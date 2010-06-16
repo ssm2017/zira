@@ -104,7 +104,7 @@ namespace RobustMigration
             foreach (var child in children)
             {
                 CreateFolder(child);
-                if (m_counter % 100 == 0) Console.Write(".");
+                if (m_counter % 10 == 0) Console.Write(".");
             }
 
             #endregion Child Folders
@@ -118,7 +118,7 @@ namespace RobustMigration
             foreach (var item in items)
             {
                 CreateItem(item);
-                if (m_counter % 100 == 0) Console.Write(".");
+                if (m_counter % 10 == 0) Console.Write(".");
             }
 
             #endregion Child Items
