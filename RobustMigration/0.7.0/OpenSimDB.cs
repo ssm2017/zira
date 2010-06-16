@@ -8,7 +8,7 @@
 // Auto-generated from opensim on 2010-06-15 12:25:05Z.
 // Please visit http://code.google.com/p/dblinq2007/ for more information.
 //
-namespace OpenSimDB
+namespace RobustMigration.v070
 {
 	using System;
 	using System.ComponentModel;

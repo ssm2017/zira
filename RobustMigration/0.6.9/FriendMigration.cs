@@ -28,11 +28,10 @@ using System;
 using System.Collections.Specialized;
 using System.Linq;
 using MySql.Data.MySqlClient;
-using OpenSimDB;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
-namespace RobustMigration
+namespace RobustMigration.v069
 {
     public class FriendMigration
     {
@@ -49,7 +48,7 @@ namespace RobustMigration
                     m_userUrl = userServiceUrl;
                     m_userUrl = userServiceUrl;
 
-                    var friends = from f in m_db.friends
+                    var friends = from f in m_db.userfriends
                                   select f;
 
                     int i = 0;
@@ -62,24 +61,24 @@ namespace RobustMigration
             }
         }
 
-        private void CreateFriend(friends friend)
+        private void CreateFriend(userfriends friend)
         {
             // Create this friendship
             NameValueCollection requestArgs = new NameValueCollection
             {
                 { "RequestMethod", "AddGeneric" },
-                { "OwnerID", friend.PrincipalID },
+                { "OwnerID", friend.ownerID },
                 { "Type", "Friend" },
-                { "Key", friend.Friend },
-                { "Value", friend.Flags }
+                { "Key", friend.friendID },
+                { "Value", friend.friendPerms.ToString() }
             };
-            // TODO: Is friend.Offered used at all?
+            // TODO: Is friend.datetimestamp used at all?
 
             OSDMap response = WebUtil.PostToService(m_userUrl, requestArgs);
             bool success = response["Success"].AsBoolean();
 
             if (!success)
-               Console.WriteLine("Failed to store friend " + friend.Friend + " for user " + friend.PrincipalID + ": " + response["Message"].AsString());
+                Console.WriteLine("Failed to store friend " + friend.friendID + " for user " + friend.ownerID + ": " + response["Message"].AsString());
         }
     }
 }

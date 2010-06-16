@@ -29,16 +29,46 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using MySql.Data.MySqlClient;
-using OpenSimDB;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
-namespace RobustMigration
+namespace RobustMigration.v070
 {
     public class UserMigration
     {
         private const string USER_ACCOUNT_TYPE = "UserAccount";
         private const string AP_PREFIX = "_ap_";
+
+        private static readonly HashSet<string> ALLOWED_APPEARANCE_ENTRIES = new HashSet<string>
+        {
+            "Height",
+            "ShapeAsset",
+            "ShapeItem",
+            "EyesAsset",
+            "EyesItem",
+            "GlovesAsset",
+            "GlovesItem",
+            "HairAsset",
+            "HairItem",
+            "JacketAsset",
+            "JacketItem",
+            "PantsAsset",
+            "PantsItem",
+            "ShirtAsset",
+            "ShirtItem",
+            "ShoesAsset",
+            "ShoesItem",
+            "SkinAsset",
+            "SkinItem",
+            "SkirtAsset",
+            "SkirtItem",
+            "SocksAsset",
+            "SocksItem",
+            "UnderpantsAsset",
+            "UnderpantsItem",
+            "UndershirtAsset",
+            "UndershirtItem"
+        };
 
         private MySqlConnection m_connection;
         private opensim m_db;
@@ -143,9 +173,19 @@ namespace RobustMigration
             foreach (var entry in metadata)
             {
                 if (entry.Name.StartsWith(AP_PREFIX))
+                {
                     attachments[entry.Name] = OSD.FromString(entry.Value);
+                }
                 else
-                    appearance[entry.Name] = OSD.FromString(entry.Value);
+                {
+                    string name = entry.Name;
+                    if (name == "AvatarHeight") name = "Height";
+                    if (name == "BodyItem") name = "ShapeItem";
+                    if (name == "BodyAsset") name = "ShapeAsset";
+
+                    if (ALLOWED_APPEARANCE_ENTRIES.Contains(name))
+                        appearance[name] = OSD.FromString(entry.Value);
+                }
             }
 
             Dictionary<string, string> userData = new Dictionary<string, string>();

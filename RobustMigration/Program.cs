@@ -25,6 +25,8 @@
  */
 
 using System;
+using System.Linq;
+using MySql.Data.MySqlClient;
 
 namespace RobustMigration
 {
@@ -78,17 +80,88 @@ namespace RobustMigration
 
             #endregion Command Line Argument Handling
 
+            try
+            {
+                Console.WriteLine("Detecting OpenSim database version...");
+
+                bool is070;
+                if (TryGetStoreVersion(connectionString, out is070))
+                {
+                    if (is070)
+                        Migrate070(connectionString, userUrl, assetUrl, inventoryUrl);
+                    else
+                        Migrate069(connectionString, userUrl, assetUrl, inventoryUrl);
+                }
+                else
+                {
+                    Console.WriteLine("Failed to detect the OpenSim database version");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Migration failed: " + ex);
+            }
+        }
+
+        static bool TryGetStoreVersion(string connectString, out bool is070)
+        {
+            const string ASSET_STORE_MIGRATION = "AssetStore";
+            const int LAST_069_ASSET_MIGRATION = 6;
+
+            using (MySqlConnection connection = new MySqlConnection(connectString))
+            {
+                using (v069.opensim db = new v069.opensim(connection))
+                {
+                    var assetStoreMigration = db.migrations.SingleOrDefault(m => m.name == ASSET_STORE_MIGRATION);
+
+                    if (assetStoreMigration != null && assetStoreMigration.version.HasValue)
+                    {
+                        if (assetStoreMigration.version.Value > LAST_069_ASSET_MIGRATION)
+                            is070 = true;
+                        else
+                            is070 = false;
+
+                        return true;
+                    }
+                }
+            }
+
+            is070 = false;
+            return false;
+        }
+
+        static void Migrate069(string connectionString, string userUrl, string assetUrl, string inventoryUrl)
+        {
+            Console.WriteLine("Migrating from OpenSim 0.6.9 to SimianGrid");
             Console.WriteLine("Starting user migrations");
-            UserMigration users = new UserMigration(connectionString, userUrl);
+            v069.UserMigration users = new v069.UserMigration(connectionString, userUrl);
             Console.WriteLine();
             Console.WriteLine("Starting asset migrations");
-            AssetMigration assets = new AssetMigration(connectionString, assetUrl);
+            v069.AssetMigration assets = new v069.AssetMigration(connectionString, assetUrl);
             Console.WriteLine();
             Console.WriteLine("Starting inventory migrations");
-            InventoryMigration inventories = new InventoryMigration(connectionString, inventoryUrl, userUrl);
+            v069.InventoryMigration inventories = new v069.InventoryMigration(connectionString, inventoryUrl, userUrl);
             Console.WriteLine();
             Console.WriteLine("Starting friend migrations");
-            FriendMigration friends = new FriendMigration(connectionString, userUrl);
+            v069.FriendMigration friends = new v069.FriendMigration(connectionString, userUrl);
+            Console.WriteLine();
+            Console.WriteLine("Done.");
+        }
+
+        static void Migrate070(string connectionString, string userUrl, string assetUrl, string inventoryUrl)
+        {
+            Console.WriteLine("Migrating from OpenSim 0.7.0 to SimianGrid");
+            Console.WriteLine("Starting user migrations");
+            v070.UserMigration users = new v070.UserMigration(connectionString, userUrl);
+            Console.WriteLine();
+            Console.WriteLine("Starting asset migrations");
+            v070.AssetMigration assets = new v070.AssetMigration(connectionString, assetUrl);
+            Console.WriteLine();
+            Console.WriteLine("Starting inventory migrations");
+            v069.InventoryMigration inventories = new v069.InventoryMigration(connectionString, inventoryUrl, userUrl);
+            Console.WriteLine();
+            Console.WriteLine("Starting friend migrations");
+            v070.FriendMigration friends = new v070.FriendMigration(connectionString, userUrl);
             Console.WriteLine();
             Console.WriteLine("Done.");
         }

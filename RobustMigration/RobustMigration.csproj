@@ -59,16 +59,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssetMigration.cs" />
-    <Compile Include="FriendMigration.cs" />
-    <Compile Include="InventoryMigration.cs" />
+    <Compile Include="0.6.9\AssetMigration.cs" />
+    <Compile Include="0.6.9\FriendMigration.cs" />
+    <Compile Include="0.6.9\InventoryMigration.cs" />
+    <Compile Include="0.6.9\OpenSimDB.cs" />
+    <Compile Include="0.6.9\UserMigration.cs" />
+    <Compile Include="0.7.0\AssetMigration.cs" />
+    <Compile Include="0.7.0\FriendMigration.cs" />
+    <Compile Include="0.7.0\OpenSimDB.cs" />
+    <Compile Include="0.7.0\UserMigration.cs" />
     <Compile Include="LLUtil.cs" />
     <Compile Include="MultipartForm.cs" />
-    <Compile Include="OpenSimDB.cs" />
     <Compile Include="options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UserMigration.cs" />
     <Compile Include="WebUtil.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -31,11 +31,10 @@ using System.Linq;
 using System.IO;
 using System.Net;
 using MySql.Data.MySqlClient;
-using OpenSimDB;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
-namespace RobustMigration
+namespace RobustMigration.v070
 {
     [Flags]
     public enum AssetFlags : int
@@ -105,7 +104,6 @@ namespace RobustMigration
             {
                 new MultipartForm.Parameter("AssetID", asset.id),
                 new MultipartForm.Parameter("CreatorID", asset.CreatorID),
-                new MultipartForm.Parameter("Temporary", asset.temporary.ToString()),
                 new MultipartForm.Parameter("Public", isPublic ? "1" : "0"),
                 new MultipartForm.File("Asset", asset.name, contentType, asset.data)
             };

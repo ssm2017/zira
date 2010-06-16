@@ -28,11 +28,10 @@ using System;
 using System.Collections.Specialized;
 using System.Linq;
 using MySql.Data.MySqlClient;
-using OpenSimDB;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
-namespace RobustMigration
+namespace RobustMigration.v069
 {
     public class InventoryMigration
     {
@@ -60,7 +59,7 @@ namespace RobustMigration
                     foreach (var rootFolder in rootFolders)
                     {
                         CreateFolder(rootFolder);
-                        
+
                         m_counter = 0;
                         Console.Write("+");
                     }
