@@ -4,21 +4,39 @@ using OpenMetaverse.StructuredData;
 
 namespace VWRAPLauncher
 {
+    /// <summary>
+    /// VWRAP Launch Document
+    /// </summary>
+    /// <remarks>http://tools.ietf.org/html/draft-hamrick-vwrap-launch-00</remarks>
     public class LaunchDocument
     {
+        /// <summary>Account identifier</summary>
         public string AccountName;
+        /// <summary>Full avatar name. A combination of first and last name on
+        /// many grids</summary>
         public string Name;
+        /// <summary>Grid login server URL</summary>
         public string LoginUrl;
+        /// <summary>Optional URI for the starting location</summary>
         public string Region;
+        /// <summary>True if the authentication type is login URL capability,
+        /// otherwise false</summary>
         public bool IsLoginUrlCapability;
-
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string WelcomeUrl;
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string EconomyUrl;
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string AboutUrl;
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string RegisterUrl;
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string HelpUrl;
+        /// <summary>Extended data - OpenSim/SL specific</summary>
         public string PasswordUrl;
 
+        /// <summary>Parses the first name out of Name or returns an empty
+        /// string</summary>
         public string FirstName
         {
             get
@@ -29,6 +47,8 @@ namespace VWRAPLauncher
             }
         }
 
+        /// <summary>Parses the last name out of Name or returns an empty
+        /// string</summary>
         public string LastName
         {
             get
@@ -39,6 +59,11 @@ namespace VWRAPLauncher
             }
         }
 
+        /// <summary>
+        /// Parses a VWRAP Launch Document file
+        /// </summary>
+        /// <param name="path">Filename of the launch document to parse</param>
+        /// <returns>The parsed document, or null on failure</returns>
         public static LaunchDocument FromFile(string path)
         {
             try
