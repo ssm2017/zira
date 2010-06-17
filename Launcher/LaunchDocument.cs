@@ -12,6 +12,13 @@ namespace VWRAPLauncher
         public string Region;
         public bool IsLoginUrlCapability;
 
+        public string WelcomeUrl;
+        public string EconomyUrl;
+        public string AboutUrl;
+        public string RegisterUrl;
+        public string HelpUrl;
+        public string PasswordUrl;
+
         public string FirstName
         {
             get
@@ -45,6 +52,12 @@ namespace VWRAPLauncher
                         LaunchDocument document = new LaunchDocument();
 
                         document.LoginUrl = launchMap["loginurl"].AsString();
+                        document.WelcomeUrl = launchMap["welcomeurl"].AsString(); // --loginpage
+                        document.EconomyUrl = launchMap["economyurl"].AsString(); // --helperuri
+                        document.AboutUrl = launchMap["abouturl"].AsString();
+                        document.RegisterUrl = launchMap["registerurl"].AsString();
+                        document.HelpUrl = launchMap["helpurl"].AsString();
+                        document.PasswordUrl = launchMap["passwordurl"].AsString();
 
                         // Not a valid launch doc without a loginurl
                         if (String.IsNullOrEmpty(document.LoginUrl))

@@ -604,31 +604,31 @@ namespace VWRAPLauncher
                 region = System.Web.HttpUtility.UrlEncode(startLocation).Replace("+", "%20");
             }
 
-            string launchArgs;
+            string launchArgs = String.Empty;
+
+            if (!String.IsNullOrEmpty(arguments))
+                launchArgs = arguments;
 
             if (m_launchDocument != null)
             {
+                if (!String.IsNullOrEmpty(m_launchDocument.WelcomeUrl))
+                    launchArgs += String.Format(" --loginpage \"{0}\"", m_launchDocument.WelcomeUrl);
+                if (!String.IsNullOrEmpty(m_launchDocument.EconomyUrl))
+                    launchArgs += String.Format(" --helperuri \"{0}\"", m_launchDocument.EconomyUrl);
+
                 if (m_launchDocument.IsLoginUrlCapability)
                 {
                     string autoLaunchUri = BuildAutoLaunchUri(m_launchDocument.FirstName, m_launchDocument.LastName, location, region);
-                    launchArgs = String.Format("-loginuri \"{0}\" -url \"{1}\"", m_launchDocument.LoginUrl, autoLaunchUri);
+                    launchArgs += String.Format(" -loginuri \"{0}\" -url \"{1}\"", m_launchDocument.LoginUrl, autoLaunchUri);
                 }
                 else
                 {
                     string loginScreenUri = BuildLoginScreenUri(location, region);
-                    launchArgs = String.Format("-loginuri \"{0}\" -url \"{1}\"", m_launchDocument.LoginUrl, loginScreenUri);
+                    launchArgs += String.Format(" -loginuri \"{0}\" -url \"{1}\"", m_launchDocument.LoginUrl, loginScreenUri);
                 }
+            }
 
-                if (!String.IsNullOrEmpty(arguments))
-                    launchArgs = arguments + " " + launchArgs;
-            }
-            else
-            {
-                if (!String.IsNullOrEmpty(arguments))
-                    launchArgs = arguments;
-                else
-                    launchArgs = String.Empty;
-            }
+            launchArgs = launchArgs.Trim();
 
             try
             {
