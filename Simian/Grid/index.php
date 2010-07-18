@@ -153,7 +153,7 @@ else if ((stripos($_SERVER['REQUEST_METHOD'], 'GET') !== FALSE || (stripos($_SER
     {
         // Regular GET request
         log_message('debug', "Ignoring GET request without a valid id parameter");
-        echo 'SimianGrid';
+        echo 'Zira';
         exit();
     }
 }
