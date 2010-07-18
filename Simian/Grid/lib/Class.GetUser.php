@@ -57,8 +57,21 @@ class GetUser implements IGridService
         }
         else if (isset($params["Name"]))
         {
-            $sql .= " WHERE Name=:Name";
-            $values["Name"] = $params["Name"];
+            // SimianGrid uses "Name", but ROBUST uses "FirstName" and
+            // "LastName", so split "Name"...
+            $name = explode(' ', $params["Name"]);
+
+            // Handle cases where Name has more or less than FirstName
+            // and LastName...
+            if (count($name) != 2) {
+                header("Content-Type: application/json", true);
+                echo '{ "Message": "No matching user found" }';
+                exit();
+            }
+
+            $sql .= " WHERE FirstName=:FirstName AND LastName=:LastName";
+            $values["FirstName"] = $name[0];
+            $values["LastName"] = $name[1];
         }
         else if (isset($params["Email"]))
         {
