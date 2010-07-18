@@ -39,7 +39,7 @@ class GetUser implements IGridService
 
     public function Execute($db, $params)
     {
-        $sql = "SELECT * FROM Users";
+        $sql = "SELECT * FROM UserAccounts";
         $values = array();
         
         if (isset($params["UserID"]) && UUID::TryParse($params["UserID"], $this->UserID))
@@ -47,11 +47,11 @@ class GetUser implements IGridService
             // Handle the special case of a request for the admin user
             if ($this->UserID == UUID::Zero)
             {
-                $sql .= " ORDER BY AccessLevel DESC LIMIT 1";
+                $sql .= " ORDER BY UserLevel DESC LIMIT 1";
             }
             else
             {
-                $sql .= " WHERE Users.ID=:UserID";
+                $sql .= " WHERE UsersAccounts.PrincipalID=:UserID";
                 $values["UserID"] = $this->UserID;
             }
         }
@@ -80,33 +80,33 @@ class GetUser implements IGridService
             {
                 $obj = $sth->fetchObject();
                 
-                $output = sprintf('{ "Success": true, "User": { "UserID":"%s","Name":"%s","Email":"%s","AccessLevel":%s',
-                    $obj->ID, $obj->Name, $obj->Email, $obj->AccessLevel);
+                $output = sprintf('{ "Success": true, "User": { "UserID":"%s","Name":"%s %s","Email":"%s","AccessLevel":%s',
+                    $obj->PrincipalID, $obj->FirstName, $obj->LastName, $obj->Email, $obj->UserLevel);
                 
                 // Fetch ExtraData from the UserData table
-                $sql = "SELECT `Key`, `Value` FROM UserData WHERE ID=:ID";
-                
-                $sth = $db->prepare($sql);
-                
-                if ($sth->execute(array(':ID' => $obj->ID)))
-                {
+                //$sql = "SELECT `Key`, `Value` FROM UserData WHERE PrincipalID=:ID";
+                //
+                //$sth = $db->prepare($sql);
+                //
+                //if ($sth->execute(array(':PrincipalID' => $obj->PrincipalID)))
+                //{
                     header("Content-Type: application/json", true);
                     echo $output;
-                    
-                    while ($obj = $sth->fetchObject())
-                        echo ',"' . $obj->Key . '":"' . $obj->Value . '"';
-                    
+                //    
+                //    while ($obj = $sth->fetchObject())
+                //        echo ',"' . $obj->Key . '":"' . $obj->Value . '"';
+                //     
                     echo '} }';
                     exit();
-                }
-                else
-                {
-                    log_message('error', sprintf("Error occurred during query: %d %s", $sth->errorCode(), print_r($sth->errorInfo(), true)));
-                    
-                    header("Content-Type: application/json", true);
-                    echo '{ "Message": "Database query error" }';
-                    exit();
-                }
+                //}
+                //else
+                //{
+                //    log_message('error', sprintf("Error occurred during query: %d %s", $sth->errorCode(), print_r($sth->errorInfo(), true)));
+                //    
+                //    header("Content-Type: application/json", true);
+                //    echo '{ "Message": "Database query error" }';
+                //    exit();
+                //}
             }
             else
             {
