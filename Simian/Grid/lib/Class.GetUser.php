@@ -51,7 +51,7 @@ class GetUser implements IGridService
             }
             else
             {
-                $sql .= " WHERE UsersAccounts.PrincipalID=:UserID";
+                $sql .= " WHERE PrincipalID=:UserID";
                 $values["UserID"] = $this->UserID;
             }
         }
