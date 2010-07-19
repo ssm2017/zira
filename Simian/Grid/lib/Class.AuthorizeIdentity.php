@@ -39,28 +39,43 @@ class AuthorizeIdentity implements IGridService
     {
         if (isset($params["Identifier"], $params["Credential"], $params["Type"]))
         {
+            // Right now we're going to assume "Identifier" == "Name".
+            // TODO: support other identifiers.
+
+            // SimianGrid uses "Name", but ROBUST uses "FirstName" and
+            // "LastName", so split "Name"...
+            $name = explode(' ', $params["Identifier"]);
+
+            // Handle cases where Name has more or less than FirstName
+            // and LastName...
+            if (count($name) != 2) {
+                header("Content-Type: application/json", true);
+                echo '{ "Message": "No matching user found" }';
+                exit();
+            }
+
+            $first_name = $name[0];
+            $last_name = $name[1];
+
             // HACK: Special handling for salted md5hash passwords
             if ($params["Type"] == 'md5hash')
             {
-                $sql = "SELECT UserID,Credential FROM Identities WHERE Identifier=:Identifier AND Type='md5hash' AND Enabled=true";
+                $sql = "SELECT UserAccounts.PrincipalID, UserAccounts.FirstName, UserAccounts.LastName,
+                        auth.passwordHash, auth.passwordSalt FROM UserAccounts, auth 
+                        WHERE UserAccounts.FirstName=:FirstName AND UserAccounts.LastName=:LastName
+                        AND UserAccounts.PrincipalID=auth.UUID";
                 $sth = $db->prepare($sql);
-                
-                if ($sth->execute(array(':Identifier' => $params["Identifier"])) && $sth->rowCount() > 0)
+
+                if ($sth->execute(array(':FirstName' => $first_name, ':LastName' => $last_name)) && $sth->rowCount() > 0)
                 {
                     $obj = $sth->fetchObject();
-                    $credential = $obj->Credential;
+                    $finalhash = $obj->passwordHash;
+                    $salt = $obj->passwordSalt;
                     
-                    // The presence of a colon in the md5hash credential indicates a salt is appended
-                    $idx = stripos($credential, ':');
-                    if ($idx)
-                    {
-                        $finalhash = substr($credential, 0, $idx);
-                        $salt = substr($credential, $idx + 1);
-                        
                         if (md5($params["Credential"] . ':' . $salt) == $finalhash)
                         {
                             header("Content-Type: application/json", true);
-                            echo '{ "Success":true, "UserID":"' . $obj->UserID . '" }';
+                            echo '{ "Success":true, "UserID":"' .  $obj->PrincipalID . '" }';
                             exit();
                         }
                         else
@@ -71,10 +86,11 @@ class AuthorizeIdentity implements IGridService
                             echo '{ "Message": "Missing identity or invalid credentials" }';
                             exit();
                         }
-                    }
                 }
             }
-            
+
+            // TODO: fix below
+
             $sql = "SELECT UserID FROM Identities WHERE Identifier=:Identifier AND Credential=:Credential AND Type=:Type and Enabled=true";
             
             $sth = $db->prepare($sql);
