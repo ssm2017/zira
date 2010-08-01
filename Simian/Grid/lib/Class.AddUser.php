@@ -41,7 +41,10 @@ class AddUser implements IGridService
     {
         if (isset($params["UserID"], $params["Name"], $params["Email"]) && UUID::TryParse($params["UserID"], $this->UserID))
         {
-            $sql = "REPLACE INTO Users (ID, Name, Email, AccessLevel) VALUES (:ID, :Name, :Email, :AccessLevel)";
+			$sql = "REPLACE INTO UserAccounts (PrincipalID, ScopeID, FirstName,
+					LastName, Email, ServiceURLs, Created, UserLevel) VALUES
+					(:PrincipalID, :ScopeID, :FirstName, :LastName, :Email,
+					:ServiceURLs, :Created, :UserLevel)";
             
             // Set the AccessLevel for this user
             if (isset($params["AccessLevel"]) && is_numeric($params["AccessLevel"]))
@@ -56,10 +59,27 @@ class AddUser implements IGridService
             {
                 $accessLevel = 0;
             }
+
+			// SimianGrid uses "Name", but ROBUST uses "FirstName" and
+			// "LastName", so split "Name"...
+			$name = explode(' ', $params["Name"]);
+
+			// Handle cases where Name has more or less than FirstName
+			// and LastName...
+			if (count($name) != 2) {
+			header("Content-Type: application/json", true);
+				echo '{ "Message": "Not a valid username" }';
+				exit();
+			}
+			$first_name = $name[0];
+			$last_name = $name[1];
             
             $sth = $db->prepare($sql);
             
-            if ($sth->execute(array('ID' => $this->UserID, 'Name' => $params["Name"], 'Email' => $params["Email"], 'AccessLevel' => $accessLevel)))
+			if ($sth->execute(array('PrincipalID' => $this->UserID, 'ScopeID' => '00000000-0000-0000-0000-000000000000',
+					'FirstName' => $first_name, 'LastName' => $last_name, 'Email' => $params["Email"],
+					'ServiceURLs' => 'HomeURI= GatekeeperURI= InventoryServerURI= AssetServerURI=',
+					'Created' => time(), 'UserLevel' => $accessLevel)))
             {
                 if ($sth->rowCount() > 0)
                 {
