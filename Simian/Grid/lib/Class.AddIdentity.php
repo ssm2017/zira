@@ -41,13 +41,43 @@ class AddIdentity implements IGridService
     {
         if (isset($params["Identifier"], $params["Credential"], $params["Type"], $params["UserID"]) && UUID::TryParse($params["UserID"], $this->UserID))
         {
-            $sql = "INSERT INTO Identities (Identifier, Credential, Type, UserID)
-            		VALUES (:Identifier, :Credential, :Type, :UserID)
-            		ON DUPLICATE KEY UPDATE Credential=VALUES(Credential), Type=VALUES(Type), UserID=VALUES(UserID)";
+
+			// right now we don't care about a1hash (used by WebDAV
+			// interface to inventory).  a1hash is easy to contruct,
+			// so we don't need to explicitly add it to the db
+			// anywhere.
+			if($params["Type"] == 'a1hash')
+			{
+				header("Content-Type: application/json", true);
+				echo '{ "Success": true }';
+				exit();
+			}
+
+			// generate salt.  bail if crypto_strong == false...
+			$new_salt = openssl_random_pseudo_bytes(16, $good_crypto);
+			if ($good_crypto) {
+				$new_salt = bin2hex($new_salt);
+			} else {
+				header("Content-Type: application/json", true);
+				echo '{ "Message": "OpenSSL error" }';
+				exit();
+			}
+
+			// ROBUST doesn't use $1$salt$... format so strip it...
+			$new_password = preg_replace('/^.*\$/', '', $params["Credential"]);
+
+			// salt it...
+			$new_password = md5($new_password . ":" . $new_salt);
+
+            $sql = "INSERT INTO auth (UUID, passwordHash, passwordSalt, webLoginKey, accountType)
+            		VALUES (:UUID, :passwordHash, :passwordSalt, :webLoginKey, :accountType)
+            		ON DUPLICATE KEY UPDATE passwordHash=VALUES(passwordHash), passwordSalt=VALUES(passwordSalt)";
             
             $sth = $db->prepare($sql);
             
-            if ($sth->execute(array(':Identifier' => $params["Identifier"], ':Credential' => $params["Credential"], ':Type' => $params["Type"], ':UserID' => $this->UserID)))
+            if ($sth->execute(array(':UUID' => $params["UserID"], ':passwordHash' => $new_password,
+					':passwordSalt' => $new_salt, ':webLoginKey' => '00000000-0000-0000-0000-000000000000',
+					':accountType' => 'UserAccount')))
             {
                 header("Content-Type: application/json", true);
                 echo '{ "Success": true }';
