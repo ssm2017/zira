@@ -46,6 +46,9 @@ class AuthorizeIdentity implements IGridService
             // "LastName", so split "Name"...
             $name = explode(' ', $params["Identifier"]);
 
+            // ROBUST doesn't use $1$salt$... so strip it...
+            $credential = preg_replace('/^.*\$/', '', $params["Credential"]);
+
             // Handle cases where Name has more or less than FirstName
             // and LastName...
             if (count($name) != 2) {
@@ -72,7 +75,7 @@ class AuthorizeIdentity implements IGridService
                     $finalhash = $obj->passwordHash;
                     $salt = $obj->passwordSalt;
                     
-                        if (md5($params["Credential"] . ':' . $salt) == $finalhash)
+                        if (md5($credential . ':' . $salt) == $finalhash)
                         {
                             header("Content-Type: application/json", true);
                             echo '{ "Success":true, "UserID":"' .  $obj->PrincipalID . '" }';
