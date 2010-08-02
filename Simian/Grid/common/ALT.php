@@ -58,31 +58,26 @@ class ALT
     {
         if ($inventory instanceof InventoryFolder)
         {
-            $sql = "INSERT INTO Inventory (ID, ParentID, OwnerID, CreatorID, Name, Description, ContentType, Version, 
-            			ExtraData, CreationDate, Type, LeftNode, RightNode)
-                    VALUES (:ID, :ParentID, :OwnerID, :OwnerID, :Name, '', :ContentType, 1, :ExtraData, CURRENT_TIMESTAMP, 
-                    	'Folder', 0, 0)
-                    ON DUPLICATE KEY UPDATE ParentID=VALUES(ParentID), CreatorID=VALUES(CreatorID), Name=VALUES(Name), 
-                    	Description=VALUES(Description), ContentType=VALUES(ContentType), Version=Version+1";
-            if (!empty($inventory->ExtraData))
-                $sql .= ", ExtraData=VALUES(ExtraData)";
+			$sql = "INSERT INTO inventoryfolders (folderID, parentFolderID, agentID, folderName, type, version)
+					VALUES (:folderID, :parentFolderID, :agentID, :folderName, :type, 1)
+					ON DUPLICATE KEY UPDATE parentFolderID=VALUES(parentFolderID),
+					folderName=VALUES(folderName), type=VALUES(type), version=version+1";
             
             $sth = $this->conn->prepare($sql);
             
             if ($sth->execute(array(
-            	':ID' => $inventory->ID,
-            	':ParentID' => $inventory->ParentID,
-            	':OwnerID' => $inventory->OwnerID,
-            	':Name' => $inventory->Name,
-            	':ContentType' => $inventory->ContentType,
-                ':ExtraData' => $inventory->ExtraData)))
+            	':folderID' => $inventory->ID,
+            	':parentFolderID' => $inventory->ParentID,
+            	':agentID' => $inventory->OwnerID,
+            	':folderName' => $inventory->Name,
+            	':type' => $inventory->ContentType)))
             {
                 if ($inventory->ParentID != NULL)
                 {
                     // Increment the parent folder version
-                    $sql = "UPDATE Inventory SET Version=Version+1 WHERE ID=:ParentID";
+                    $sql = "UPDATE inventoryfolder SET version=version+1 WHERE folderID=:parentFolderID";
                     $sth = $this->conn->prepare($sql);
-                    $sth->execute(array(':ParentID' => $inventory->ParentID));
+                    $sth->execute(array(':parentFolderID' => $inventory->ParentID));
                 }
                 
                 // Node Inserted!
@@ -98,45 +93,46 @@ class ALT
         else if ($inventory instanceof InventoryItem)
         {
             if (isset($inventory->CreatorID))
-                $creatorIDSql = ":CreatorID";
+                $creatorID = ":creatorID";
             else
-                $creatorIDSql = "(SELECT CreatorID FROM AssetData WHERE ID=:AssetID)";
+                // TODO: fix me
+                $creatorID = "'00000000-0000-0000-0000-000000000000'";
             
             if (isset($inventory->ContentType))
-                $contentTypeSql = ":ContentType";
+                $contentType = ":invType";
             else
-                $contentTypeSql = "(SELECT ContentType FROM AssetData WHERE ID=:AssetID)"; 
+                // TODO: fix me
+                $contentType = "'00000000-0000-0000-0000-000000000000'";
             
-            $sql = "INSERT INTO Inventory (ID, AssetID, ParentID, OwnerID, CreatorID, Name, Description, ContentType, Version, 
-            			ExtraData, CreationDate, Type, LeftNode, RightNode)
-                    VALUES (:ID, :AssetID, :ParentID, :OwnerID, " . $creatorIDSql . ", :Name, 
-                    	:Description, " . $contentTypeSql . ", 0, :ExtraData, CURRENT_TIMESTAMP , 'Item', 0, 0)
-                    ON DUPLICATE KEY UPDATE AssetID=VALUES(AssetID), ParentID=VALUES(ParentID), CreatorID=VALUES(CreatorID), 
-                    	Name=VALUES(Name), Description=VALUES(Description), ContentType=VALUES(ContentType), Version=Version+1";
-            if (!empty($inventory->ExtraData))
-                $sql .= ", ExtraData=VALUES(ExtraData)";
+			$sql = "INSERT INTO inventoryitems (inventoryID, assetID, parentFolderID,
+					avatarID, creatorID, inventoryName, inventoryDescription, assetType,
+					creationDate) VALUES (:inventoryID, :assetID, :parentFolderID,
+					:avatarID, " . $creatorID . ", :inventoryName, :inventoryDescription,
+					" . $contentType . ", CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE
+					assetID=VALUES(assetID), parentFolderID=VALUES(parentFolderID),
+					creatorID=VALUES(creatorID), inventoryName=VALUES(inventoryName),
+					inventoryDescription=VALUES(inventoryDescription), assetType=VALUES(assetType)";
             
             $dbValues = array(
-            	':ID' => $inventory->ID,
-            	':AssetID' => $inventory->AssetID,
-            	':ParentID' => $inventory->ParentID,
-            	':OwnerID' => $inventory->OwnerID,
-            	':Name' => $inventory->Name,
-            	':Description' => $inventory->Description,
-                ':ExtraData' => $inventory->ExtraData);
+            	':inventoryID' => $inventory->ID,
+            	':assetID' => $inventory->AssetID,
+            	':parentFolderID' => $inventory->ParentID,
+            	':avatarID' => $inventory->OwnerID,
+            	':inventoryName' => $inventory->Name,
+            	':inventoryDescription' => $inventory->Description);
             if (isset($inventory->CreatorID))
-                $dbValues['CreatorID'] = $inventory->CreatorID;
+                $dbValues['creatorID'] = $inventory->CreatorID;
             if (isset($inventory->ContentType))
-                $dbValues['ContentType'] = $inventory->ContentType;
+                $dbValues['assetType'] = $inventory->ContentType;
             
             $sth = $this->conn->prepare($sql);
             
             if ($sth->execute($dbValues))
             {
                 // Increment the parent folder version
-                $sql = "UPDATE Inventory SET Version=Version+1 WHERE ID=:ParentID";
+                $sql = "UPDATE inventoryfolders SET version=version+1 WHERE folderID=:parentFolderID";
                 $sth = $this->conn->prepare($sql);
-                $sth->execute(array(':ParentID' => $inventory->ParentID));
+                $sth->execute(array(':parentFolderID' => $inventory->ParentID));
                 
                 return $inventory->ID;
             }
@@ -156,12 +152,12 @@ class ALT
 
     public function FetchSkeleton($ownerID)
     {
-        $sql = "SELECT * FROM Inventory WHERE OwnerID=:OwnerID AND Type='Folder' ORDER BY ParentID ASC";
+        $sql = "SELECT * FROM inventoryfolders WHERE agentID=:agentID ORDER BY parentFolderID ASC";
         $sth = $this->conn->prepare($sql);
         
         $results = array();
         
-        if ($sth->execute(array(':OwnerID' => $ownerID)))
+        if ($sth->execute(array(':agentID' => $ownerID)))
         {
             while ($obj = $sth->fetchObject())
             {
@@ -178,6 +174,7 @@ class ALT
         }
     }
 
+    // TODO: fix me
     public function FetchDescendants($rootID, $fetchFolders = TRUE, $fetchItems = TRUE, $childrenOnly = TRUE)
     {
         if (($fetchFolders && $fetchItems) || !$childrenOnly)
