@@ -64,13 +64,19 @@ class ALT
 					folderName=VALUES(folderName), type=VALUES(type), version=version+1";
             
             $sth = $this->conn->prepare($sql);
+
+			// simian stuff, e.g. new av skeletons, use string to
+			// describe onject types.  need to convert that to
+			// integer.
+			$mimes =& get_mimes();
+			$type = isset($mimes[$inventory->ContentType]) ? $mimes[$inventory->ContentType] : -1;
             
             if ($sth->execute(array(
             	':folderID' => $inventory->ID,
             	':parentFolderID' => $inventory->ParentID,
             	':agentID' => $inventory->OwnerID,
             	':folderName' => $inventory->Name,
-            	':type' => $inventory->ContentType)))
+            	':type' => $type)))
             {
                 if ($inventory->ParentID != NULL)
                 {
