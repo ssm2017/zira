@@ -67,10 +67,6 @@ class ALT
             if (!empty($inventory->ExtraData))
                 $sql .= ", ExtraData=VALUES(ExtraData)";
             
-            // ParentID of UUID::Zero means this is a root folder, so we set ParentID to null
-            if ($inventory->ParentID == UUID::Zero)
-                $inventory->ParentID = NULL;
-            
             $sth = $this->conn->prepare($sql);
             
             if ($sth->execute(array(
