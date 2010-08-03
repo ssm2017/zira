@@ -56,8 +56,8 @@ class AddUserData implements IGridService
             
             if (count($params) > 0)
             {
-                $sql = "REPLACE INTO UserData (ID, `Key`, `Value`) VALUES";
-                $values = array(":ID" => $this->UserID);
+                $sql = "REPLACE INTO Avatars (PrincipalID, Name, `Value`) VALUES";
+                $values = array(":PrincipalID" => $this->UserID);
                 $i = 0;
                 
                 foreach ($params as $key => $value)
@@ -71,9 +71,9 @@ class AddUserData implements IGridService
                     
                     if ($i > 0)
                         $sql .= ',';
-                    $sql .= '(:ID, :Key' . $i . ', :Value' . $i . ')';
+                    $sql .= '(:PrincipalID, :Name' . $i . ', :Value' . $i . ')';
                     
-                    $values[':Key' . $i] = preg_replace('/[^a-zA-Z0-9\s]/', '', $key);
+                    $values[':Name' . $i] = preg_replace('/[^a-zA-Z0-9\s]/', '', $key);
                     $values[':Value' . $i] = escape_json($value);
                     
                     ++$i;
