@@ -38,7 +38,7 @@ require_once(BASEPATH . 'common/ALT.php');
 function update_appearance($userID, $appearance)
 {
     header("Content-Type: application/json", true);
-    echo '{ "Message": "Doh!  Something terribly went wrong.  I don't know anything about appearance." }';
+    echo '{ "Message": "Doh!  Something went terribly wrong.  I don't know anything about appearance." }';
     exit();
 }
 
