@@ -37,25 +37,9 @@ require_once(BASEPATH . 'common/ALT.php');
 
 function update_appearance($userID, $appearance)
 {
-    $config =& get_config();
-    $url = $config['user_service'];
-    
-    $params = array(
-        'RequestMethod' => 'AddUserData',
-        'UserID' => $userID,
-        'LLAppearance' => json_encode($appearance)
-    );
-    
-    $curl = new Curl();
-    $response = json_decode($curl->simple_post($url, $params), TRUE);
-    
-    if (!isset($response))
-    {
-        log_message('error', "Update appearance call to $url failed");
-	    $response = array('Message' => 'Invalid or missing response');
-    }
-	
-	return $response;
+    header("Content-Type: application/json", true);
+    echo '{ "Message": "Doh!  Something terribly went wrong.  I don't know anything about appearance." }';
+    exit();
 }
 
 function update_attachments($userID, $attachments)
