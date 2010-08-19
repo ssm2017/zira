@@ -187,32 +187,32 @@ class AddInventory implements IGridService
         $db->commit();
         
         // Update this users appearance in the user service
-        $appearance = $avtypehandler->Appearance();
-        if ($appearance)
-        {
-            $response = update_appearance($this->UserID, $appearance);
-            
-            if (empty($response['Success']))
-            {
-                header("Content-Type: application/json", true);
-                echo sprintf('{ "Message": "%s" }', $response['Message']);
-                exit();
-            }
-        }
+        //$appearance = $avtypehandler->Appearance();
+        //if ($appearance)
+        //{
+        //    $response = update_appearance($this->UserID, $appearance);
+        //    
+        //    if (empty($response['Success']))
+        //    {
+        //        header("Content-Type: application/json", true);
+        //        echo sprintf('{ "Message": "%s" }', $response['Message']);
+        //        exit();
+        //    }
+        //}
         
         // Update this users attachments in the user service
-        $attachments = $avtypehandler->Attachments();
-        if ($attachments)
-        {
-            $response = update_attachments($this->UserID, $attachments);
-            
-            if (empty($response['Success']))
-            {
-                header("Content-Type: application/json", true);
-                echo sprintf('{ "Message": "%s" }', $response['Message']);
-                exit();
-            }
-        }
+        //$attachments = $avtypehandler->Attachments();
+        //if ($attachments)
+        //{
+        //    $response = update_attachments($this->UserID, $attachments);
+        //    
+        //    if (empty($response['Success']))
+        //    {
+        //        header("Content-Type: application/json", true);
+        //        echo sprintf('{ "Message": "%s" }', $response['Message']);
+        //        exit();
+        //    }
+        //}
 
     	// Add any additional customizations
         $avtypehandler->Configure();
