@@ -99,22 +99,20 @@ class ALT
         else if ($inventory instanceof InventoryItem)
         {
             if (isset($inventory->CreatorID))
-                $creatorID = ":creatorID";
+                $creatorIDSql = ":CreatorID";
             else
-                // TODO: fix me
-                $creatorID = "'00000000-0000-0000-0000-000000000000'";
-            
+                $creatorIDSql = "(SELECT CreatorID FROM assets WHERE id=:assetID)";
+
             if (isset($inventory->ContentType))
-                $contentType = ":invType";
+                $contentTypeSql = ":assetType";
             else
-                // TODO: fix me
-                $contentType = "'00000000-0000-0000-0000-000000000000'";
+                $contentTypeSql = "(SELECT assetType FROM assets WHERE id=:assetID)";
             
 			$sql = "INSERT INTO inventoryitems (inventoryID, assetID, parentFolderID,
 					avatarID, creatorID, inventoryName, inventoryDescription, assetType,
 					creationDate) VALUES (:inventoryID, :assetID, :parentFolderID,
-					:avatarID, " . $creatorID . ", :inventoryName, :inventoryDescription,
-					" . $contentType . ", CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE
+					:avatarID, " . $creatorIDSql . ", :inventoryName, :inventoryDescription,
+					" . $contentTypeSql . ", CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE
 					assetID=VALUES(assetID), parentFolderID=VALUES(parentFolderID),
 					creatorID=VALUES(creatorID), inventoryName=VALUES(inventoryName),
 					inventoryDescription=VALUES(inventoryDescription), assetType=VALUES(assetType)";
@@ -127,12 +125,12 @@ class ALT
             	':inventoryName' => $inventory->Name,
             	':inventoryDescription' => $inventory->Description);
             if (isset($inventory->CreatorID))
-                $dbValues['creatorID'] = $inventory->CreatorID;
+                $dbValues['CreatorID'] = $inventory->CreatorID;
             if (isset($inventory->ContentType))
                 $dbValues['assetType'] = $inventory->ContentType;
             
             $sth = $this->conn->prepare($sql);
-            
+
             if ($sth->execute($dbValues))
             {
                 // Increment the parent folder version
