@@ -14,3 +14,27 @@ frontend with a stock OpenSim ROBUST backend.
 ZIRA IS NOT A USER WEB INTERFACE.  Zira does, however, allow you to
 run the SimianGrid web frontend for users with ROBUST-powered backend
 services.
+
+------------------------------------------------------------------------
+
+As an illustration, say you are running the SimianGrid web frontend,
+and it tried to fetch the email address of a registered grid user by
+POST-ing the following request:
+
+    RequestMethod=GetUser&UserID=6dce435b-b22b-4b71-ba25-ad298c97594b
+
+If that request was sent that to a ROBUST-powered UserAccountService,
+it would have no idea what you're talking about.  Instead, Zira will
+take that request, find the appropriate info in the database, and
+respond in a way that SimianGrid API-speaking components expect, e.g.:
+
+    {
+        "Success":true,
+        "User":
+        {
+            "UserID":"6dce435b-b22b-4b71-ba25-ad298c97594b",
+            "Name":"John Doe",
+            "Email":"john.doe@email.com",
+        }
+    }
+
