@@ -23,10 +23,10 @@ POST-ing the following request:
 
     RequestMethod=GetUser&UserID=6dce435b-b22b-4b71-ba25-ad298c97594b
 
-If that request was sent that to a ROBUST-powered UserAccountService,
-it would have no idea what you're talking about.  Instead, Zira will
-take that request, find the appropriate info in the database, and
-respond in a way that SimianGrid API-speaking components expect, e.g.:
+If that request was sent to a ROBUST-powered UserAccountService, it
+would have no idea what you're talking about.  Instead, Zira will take
+that request, find the appropriate info in the database, and respond
+in a way that SimianGrid API-speaking components expect, e.g.:
 
     {
         "Success":true,
