@@ -10,3 +10,6 @@ Zira is a fork of SimianGrid [ http://code.google.com/p/openmetaverse/ ]
 to provide a SimianGrid API interface to an OpenSimulator ROBUST
 backend.  This will allow, for example, use of the SimianGrid web
 frontend with a stock OpenSim ROBUST backend.
+
+ZIRA IS NOT A WEB INTERFACE.  Zira does, however, allow you to run the
+SimianGrid web frontend with ROBUST-powered backend services.
