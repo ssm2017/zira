@@ -11,5 +11,6 @@ to provide a SimianGrid API interface to an OpenSimulator ROBUST
 backend.  This will allow, for example, use of the SimianGrid web
 frontend with a stock OpenSim ROBUST backend.
 
-ZIRA IS NOT A WEB INTERFACE.  Zira does, however, allow you to run the
-SimianGrid web frontend with ROBUST-powered backend services.
+ZIRA IS NOT A USER WEB INTERFACE.  Zira does, however, allow you to
+run the SimianGrid web frontend for users with ROBUST-powered backend
+services.
